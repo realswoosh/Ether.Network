@@ -1,6 +1,7 @@
 # Ether.Network 
 
 [![Build Status](https://travis-ci.org/Eastrall/Ether.Network.svg?branch=master)](https://travis-ci.org/Eastrall/Ether.Network)
+[![NuGet Status](https://img.shields.io/nuget/v/Ether.Network.svg)](https://www.nuget.org/packages/Ether.Network/)
 
 Ether.Network is a basic library to make quickly a simple server or client using sockets.
 
