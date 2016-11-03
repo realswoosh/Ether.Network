@@ -9,10 +9,11 @@ namespace Client
         {
             Console.Title = "Client";
 
-            NetClient client = new NetClient();
-
-            client.Connect("127.0.0.1", 4444);
-            client.Run(); // blocking
+            using (var client = new Client())
+            {
+                client.Connect("127.0.0.1", 4444);
+                client.Run();
+            }
         }
     }
 }
