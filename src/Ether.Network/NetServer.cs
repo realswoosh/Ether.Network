@@ -10,6 +10,9 @@ namespace Ether.Network
 {
     public abstract class NetServer<T> : IDisposable where T : NetConnection, new()
     {
+        public event EventHandler<NetConnection> OnClientConnected;
+        public event EventHandler<NetConnection> OnClientDisconnected;
+
         private static object syncClients = new object();
 
         private Socket listenSocket;
@@ -17,27 +20,56 @@ namespace Ether.Network
         private Thread listenThread;
         private Thread handlerThread;
 
-        public bool IsRunning { get; private set; }
+        private readonly NetConfiguration defaultConfiguration;
 
+        /// <summary>
+        /// Gets the NetServer configuration.
+        /// </summary>
+        public NetConfiguration Configuration { get; protected set; }
+
+        /// <summary>
+        /// Gets the value if the server is running.
+        /// </summary>
+        public bool IsRunning { get; private set; }
+    
+        /// <summary>
+        /// Creates a new NetServer instance.
+        /// </summary>
         public NetServer()
         {
             this.IsRunning = false;
             this.clients = new List<NetConnection>();
+
+            this.defaultConfiguration = new NetConfiguration()
+            {
+                Ip = "127.0.0.1",
+                Port = 5000
+            };
         }
 
+        /// <summary>
+        /// Destroy the server.
+        /// </summary>
         ~NetServer()
         {
             this.Dispose(false);
         }
 
-        public void Start()
+        /// <summary>
+        /// Start the server.
+        /// </summary>
+        /// <param name="configuration">NetServer configuration</param>
+        public void Start(NetConfiguration configuration = null)
         {
             if (this.IsRunning == false)
             {
+                if (configuration != null)
+                    this.Configuration = configuration;
+
                 this.Initialize();
 
                 this.listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                this.listenSocket.Bind(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 4444));
+                this.listenSocket.Bind(new IPEndPoint(this.Configuration.IpAddress, this.Configuration.Port));
                 this.listenSocket.Listen(100);
 
                 this.listenThread = new Thread(this.ListenSocket);
@@ -54,6 +86,9 @@ namespace Ether.Network
                 throw new InvalidOperationException("NetServer is already running.");
         }
 
+        /// <summary>
+        /// Stop the server.
+        /// </summary>
         public void Stop()
         {
             if (!this.IsRunning) return;
@@ -61,25 +96,30 @@ namespace Ether.Network
             this.Dispose();
         }
 
+        /// <summary>
+        /// Listen new clients on the socket.
+        /// </summary>
         private void ListenSocket()
         {
             while (this.IsRunning)
             {
                 if (this.listenSocket.Poll(100, SelectMode.SelectRead))
                 {
-                    Console.WriteLine("New client connected");
-                    var client = new T();
-
-                    client.Initialize(this.listenSocket.Accept());
-
+                    var client = Activator.CreateInstance(typeof(T), this.listenSocket.Accept()) as T;
+                    
                     lock (syncClients)
                         this.clients.Add(client);
+
+                    this.OnClientConnected?.Invoke(this, client);
                 }
 
                 Thread.Sleep(100);
             }
         }
 
+        /// <summary>
+        /// Handle connected clients.
+        /// </summary>
         private void HandleClients()
         {
             var clientsReady = new Queue<NetConnection>();
@@ -107,7 +147,7 @@ namespace Ether.Network
                             var recievedDataSize = client.Socket.Receive(buffer);
 
                             if (recievedDataSize <= 0)
-                                throw new Exception("Disconnected");
+                                throw new Exception("Disconnected from the server");
                             else
                             {
                                 var recievedPackets = NetPacket.Split(buffer);
@@ -122,10 +162,7 @@ namespace Ether.Network
                         catch (Exception e)
                         {
                             if (!client.Socket.Connected)
-                            {
-                                Console.WriteLine("Client disconnected");
                                 this.RemoveClient(client);
-                            }
                             else
                                 Console.WriteLine($"Error: {e.Message}{Environment.NewLine}{e.StackTrace}");
                         }
@@ -140,18 +177,30 @@ namespace Ether.Network
             }
         }
 
+        /// <summary>
+        /// Removes a client from the server.
+        /// </summary>
+        /// <param name="client"></param>
         public void RemoveClient(NetConnection client)
         {
             lock (syncClients)
             {
-                var _clientToRemove = this.clients.Find(item => item != null && item == client);
+                var clientToRemove = this.clients.Find(item => item != null && item == client);
 
-                this.clients.Remove(_clientToRemove);
+                this.clients.Remove(clientToRemove);
+                clientToRemove.Dispose();
+                this.OnClientDisconnected?.Invoke(this, clientToRemove);
             }
         }
 
+        /// <summary>
+        /// Initialize server internal resources.
+        /// </summary>
         protected abstract void Initialize();
 
+        /// <summary>
+        /// Waits for user input.
+        /// </summary>
         protected abstract void Idle();
 
         #region IDisposable Support
@@ -179,11 +228,15 @@ namespace Ether.Network
             disposedValue = true;
         }
 
+        /// <summary>
+        /// Dispose the server resources.
+        /// </summary>
         public void Dispose()
         {
             this.Dispose(true);
             GC.SuppressFinalize(this);
         }
+
         #endregion
     }
 }

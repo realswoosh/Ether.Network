@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace Ether.Network
 {
+    /// <summary>
+    /// [WIP] Delayer.
+    /// </summary>
     public static class NetDelayer
     {
         private static List<NetDelayerAction> actions = new List<NetDelayerAction>();
