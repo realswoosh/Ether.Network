@@ -1,4 +1,8 @@
-﻿{
+{
+  "title": "Ether.Network",
+  "copyright": "Filipe GOMES PEIXOTO © 2016",
+  "description": "Simple and fast network library",
+  "language": "en",
   "version": "1.0.0-*",
 
   "dependencies": {
