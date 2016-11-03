@@ -15,7 +15,7 @@ namespace Ether.Network.Packets
         private BinaryWriter memoryWriter;
         private PacketStateType state;
 
-        private readonly Dictionary<Type, Func<BinaryReader, object>> readMethods = new Dictionary<Type, Func<BinaryReader, object>>()
+        private static readonly Dictionary<Type, Func<BinaryReader, object>> readMethods = new Dictionary<Type, Func<BinaryReader, object>>()
         {
             { typeof(char), reader => reader.ReadChar()},
             { typeof(byte), reader => reader.ReadByte()},
@@ -30,7 +30,7 @@ namespace Ether.Network.Packets
             { typeof(string), reader => new string(reader.ReadChars(count: reader.ReadUInt16())) },
         };
 
-        private readonly Dictionary<Type, Action<BinaryWriter, object>> writeMethods = new Dictionary<Type, Action<BinaryWriter, object>>()
+        private static readonly Dictionary<Type, Action<BinaryWriter, object>> writeMethods = new Dictionary<Type, Action<BinaryWriter, object>>()
         {
             { typeof(char), (writer, value) => writer.Write((char)value) },
             { typeof(byte), (writer, value) => writer.Write((byte)value) },
@@ -61,12 +61,11 @@ namespace Ether.Network.Packets
             {
                 if (this.state == PacketStateType.Write)
                 {
-                    var size = Convert.ToInt32(this.memoryStream.Length);
+                    this.Size = Convert.ToInt32(this.memoryStream.Length);
 
                     this.memoryWriter.Seek(0, SeekOrigin.Begin);
-                    this.Write(size);
-                    this.memoryWriter.Seek(size, SeekOrigin.Begin);
-                    this.memoryStream.Flush();
+                    this.Write(this.Size);
+                    this.memoryWriter.Seek(this.Size, SeekOrigin.Begin);
                 }
 
                 ArraySegment<byte> buffer;
@@ -76,6 +75,8 @@ namespace Ether.Network.Packets
                 return buffer.ToArray();
             }
         }
+
+        public int Size { get; internal set; }
 
         public NetPacket()
         {
@@ -101,8 +102,8 @@ namespace Ether.Network.Packets
 
             var type = typeof(T);
 
-            if (this.writeMethods.ContainsKey(type))
-                this.writeMethods[type](this.memoryWriter, value);
+            if (writeMethods.ContainsKey(type))
+                writeMethods[type](this.memoryWriter, value);
         }
 
         public T Read<T>()
@@ -112,8 +113,8 @@ namespace Ether.Network.Packets
 
             var type = typeof(T);
 
-            if (this.readMethods.ContainsKey(type))
-                return (T)this.readMethods[type](this.memoryReader);
+            if (readMethods.ContainsKey(type))
+                return (T)readMethods[type](this.memoryReader);
 
             return default(T);
         }
@@ -144,25 +145,26 @@ namespace Ether.Network.Packets
             ICollection<NetPacket> packets = new List<NetPacket>();
 
             using (var memoryStream = new MemoryStream(buffer))
+            using (var readerStream = new BinaryReader(memoryStream))
             {
-                using (var readerStream = new BinaryReader(memoryStream))
+                try
                 {
-                    try
+                    while (readerStream.BaseStream.Position < readerStream.BaseStream.Length)
                     {
-                        while (readerStream.BaseStream.Position < readerStream.BaseStream.Length)
-                        {
-                            var packetSize = readerStream.ReadInt32();
+                        var packetSize = readerStream.ReadInt32();
 
-                            if (packetSize == 0)
-                                break;
+                        if (packetSize == 0)
+                            break;
 
-                            packets.Add(new NetPacket(readerStream.ReadBytes(packetSize)));
-                        }
+                        var newPacket = new NetPacket(readerStream.ReadBytes(packetSize));
+                        newPacket.Size = packetSize;
+
+                        packets.Add(newPacket);
                     }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine("An error occured during the packet spliting. {0}", e.Message);
-                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("An error occured during the packet spliting. {0}", e.Message);
                 }
             }
 
