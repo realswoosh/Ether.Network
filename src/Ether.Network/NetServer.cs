@@ -20,8 +20,6 @@ namespace Ether.Network
         private Thread listenThread;
         private Thread handlerThread;
 
-        private readonly NetConfiguration defaultConfiguration;
-
         /// <summary>
         /// Gets the NetServer configuration.
         /// </summary>
@@ -40,7 +38,7 @@ namespace Ether.Network
             this.IsRunning = false;
             this.clients = new List<NetConnection>();
 
-            this.defaultConfiguration = new NetConfiguration()
+            this.Configuration = new NetConfiguration()
             {
                 Ip = "127.0.0.1",
                 Port = 5000
@@ -63,7 +61,8 @@ namespace Ether.Network
         {
             if (this.IsRunning == false)
             {
-                this.Configuration = configuration == null ? this.defaultConfiguration : configuration;
+                if (configuration != null)
+                    this.Configuration = configuration;
 
                 this.Initialize();
 
