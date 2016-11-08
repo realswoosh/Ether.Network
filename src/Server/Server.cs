@@ -9,11 +9,11 @@ namespace Server
             : base()
         {
             // Create the configuration
-            this.Configuration = new NetConfiguration()
-            {
-                Ip = "127.0.0.1",
-                Port = 4444
-            };
+            //this.Configuration = new NetConfiguration()
+            //{
+            //    Ip = "127.0.0.1",
+            //    Port = 4444
+            //};
 
             this.OnClientConnected += Server_OnClientConnected;
             this.OnClientDisconnected += Server_OnClientDisconnected;

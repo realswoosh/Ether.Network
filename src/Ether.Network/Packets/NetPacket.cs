@@ -71,11 +71,7 @@ namespace Ether.Network.Packets
                     this.memoryWriter.Seek(this.Size, SeekOrigin.Begin);
                 }
 
-                ArraySegment<byte> buffer;
-
-                this.memoryStream.TryGetBuffer(out buffer);
-
-                return buffer.ToArray();
+                return this.GetBuffer();
             }
         }
 
@@ -118,6 +114,19 @@ namespace Ether.Network.Packets
 
             this.memoryStream = new MemoryStream(buffer, 0, buffer.Length);
             this.memoryReader = new BinaryReader(this.memoryStream);
+        }
+
+        /// <summary>
+        /// Gets the packet buffer.
+        /// </summary>
+        /// <returns></returns>
+        protected byte[] GetBuffer()
+        {
+            ArraySegment<byte> buffer;
+
+            this.memoryStream.TryGetBuffer(out buffer);
+
+            return buffer.ToArray();
         }
 
         /// <summary>
@@ -185,7 +194,7 @@ namespace Ether.Network.Packets
         /// <returns></returns>
         public static NetPacket[] Split(byte[] buffer)
         {
-            ICollection<NetPacket> packets = new List<NetPacket>();
+            var packets = new List<NetPacket>();
 
             using (var memoryStream = new MemoryStream(buffer))
             using (var readerStream = new BinaryReader(memoryStream))

@@ -63,8 +63,7 @@ namespace Ether.Network
         {
             if (this.IsRunning == false)
             {
-                if (configuration != null)
-                    this.Configuration = configuration;
+                this.Configuration = configuration == null ? this.defaultConfiguration : configuration;
 
                 this.Initialize();
 
