@@ -19,7 +19,7 @@ namespace Ether.Network
         /// <summary>
         /// Gets the connection socket.
         /// </summary>
-        public Socket Socket { get; private set; }
+        public Socket Socket { get; protected set; }
         
         /// <summary>
         /// Creates a new NetConnection instance.

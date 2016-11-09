@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 
 namespace Ether.Network.Packets
 {
@@ -13,49 +12,6 @@ namespace Ether.Network.Packets
         private BinaryReader memoryReader;
         private BinaryWriter memoryWriter;
         private PacketStateType state;
-
-        /// <summary>
-        /// Read methods dictionary.
-        /// </summary>
-        private static readonly Dictionary<Type, Func<BinaryReader, object>> readMethods = new Dictionary<Type, Func<BinaryReader, object>>()
-        {
-            { typeof(char), reader => reader.ReadChar()},
-            { typeof(byte), reader => reader.ReadByte()},
-            { typeof(bool), reader => reader.ReadBoolean()},
-            { typeof(ushort), reader => reader.ReadUInt16()},
-            { typeof(short), reader => reader.ReadInt16()},
-            { typeof(uint), reader => reader.ReadUInt32()},
-            { typeof(int), reader => reader.ReadInt32()},
-            { typeof(ulong), reader => reader.ReadUInt64()},
-            { typeof(long), reader => reader.ReadInt64()},
-            { typeof(byte[]), reader => reader.ReadBytes(count: reader.ReadUInt16())},
-            { typeof(string), reader => new string(reader.ReadChars(count: reader.ReadUInt16())) },
-        };
-
-        /// <summary>
-        /// Write methods dictionary.
-        /// </summary>
-        private static readonly Dictionary<Type, Action<BinaryWriter, object>> writeMethods = new Dictionary<Type, Action<BinaryWriter, object>>()
-        {
-            { typeof(char), (writer, value) => writer.Write((char)value) },
-            { typeof(byte), (writer, value) => writer.Write((byte)value) },
-            { typeof(bool), (writer, value) => writer.Write((bool)value) },
-            { typeof(ushort), (writer, value) => writer.Write((ushort)value) },
-            { typeof(short), (writer, value) => writer.Write((short)value) },
-            { typeof(uint), (writer, value) => writer.Write((uint)value) },
-            { typeof(int), (writer, value) => writer.Write((int)value) },
-            { typeof(ulong), (writer, value) => writer.Write((ulong)value) },
-            { typeof(long), (writer, value) => writer.Write((long)value) },
-            { typeof(byte[]), (writer, value) => writer.Write((byte[])value) },
-            { typeof(string),
-                (writer, value) =>
-                {
-                    writer.Write((ushort)value.ToString().Length);
-                    if (value.ToString().Length > 0)
-                        writer.Write(Encoding.ASCII.GetBytes(value.ToString()));
-                }
-            }
-        };
 
         /// <summary>
         /// Gets the Packet buffer.
@@ -141,8 +97,8 @@ namespace Ether.Network.Packets
 
             var type = typeof(T);
 
-            if (writeMethods.ContainsKey(type))
-                writeMethods[type](this.memoryWriter, value);
+            if (NetPacketMethods.WriteMethods.ContainsKey(type))
+                NetPacketMethods.WriteMethods[type](this.memoryWriter, value);
         }
 
         /// <summary>
@@ -157,8 +113,8 @@ namespace Ether.Network.Packets
 
             var type = typeof(T);
 
-            if (readMethods.ContainsKey(type))
-                return (T)readMethods[type](this.memoryReader);
+            if (NetPacketMethods.ReadMethods.ContainsKey(type))
+                return (T)NetPacketMethods.ReadMethods[type](this.memoryReader);
 
             return default(T);
         }

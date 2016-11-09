@@ -8,14 +8,10 @@ using System.Threading;
 
 namespace Ether.Network
 {
-    public abstract class NetServer<T> : IDisposable where T : NetConnection, new()
+    public abstract class NetServer<T> : NetConnection, IDisposable where T : NetConnection, new()
     {
-        public event EventHandler<NetConnection> OnClientConnected;
-        public event EventHandler<NetConnection> OnClientDisconnected;
-
         private static object syncClients = new object();
-
-        private Socket listenSocket;
+        
         private readonly List<NetConnection> clients;
         private Thread listenThread;
         private Thread handlerThread;
@@ -34,6 +30,7 @@ namespace Ether.Network
         /// Creates a new NetServer instance.
         /// </summary>
         public NetServer()
+            : base()
         {
             this.IsRunning = false;
             this.clients = new List<NetConnection>();
@@ -66,9 +63,9 @@ namespace Ether.Network
 
                 this.Initialize();
 
-                this.listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                this.listenSocket.Bind(new IPEndPoint(this.Configuration.IpAddress, this.Configuration.Port));
-                this.listenSocket.Listen(100);
+                this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                this.Socket.Bind(new IPEndPoint(this.Configuration.IpAddress, this.Configuration.Port));
+                this.Socket.Listen(100);
 
                 this.listenThread = new Thread(this.ListenSocket);
                 this.listenThread.Start();
@@ -101,14 +98,14 @@ namespace Ether.Network
         {
             while (this.IsRunning)
             {
-                if (this.listenSocket.Poll(100, SelectMode.SelectRead))
+                if (this.Socket.Poll(100, SelectMode.SelectRead))
                 {
-                    var client = Activator.CreateInstance(typeof(T), this.listenSocket.Accept()) as T;
+                    var client = Activator.CreateInstance(typeof(T), this.Socket.Accept()) as T;
                     
                     lock (syncClients)
                         this.clients.Add(client);
 
-                    this.OnClientConnected?.Invoke(this, client);
+                    this.OnClientConnected(client);
                 }
 
                 Thread.Sleep(100);
@@ -148,7 +145,7 @@ namespace Ether.Network
                                 throw new Exception("Disconnected from the server");
                             else
                             {
-                                var recievedPackets = NetPacket.Split(buffer);
+                                var recievedPackets = this.SplitPackets(buffer);
 
                                 foreach (var packet in recievedPackets)
                                 {
@@ -178,7 +175,7 @@ namespace Ether.Network
         /// <summary>
         /// Removes a client from the server.
         /// </summary>
-        /// <param name="client"></param>
+        /// <param name="client">Client to remove</param>
         public void RemoveClient(NetConnection client)
         {
             lock (syncClients)
@@ -187,8 +184,18 @@ namespace Ether.Network
 
                 this.clients.Remove(clientToRemove);
                 clientToRemove.Dispose();
-                this.OnClientDisconnected?.Invoke(this, clientToRemove);
+                this.OnClientDisconnected(clientToRemove);
             }
+        }
+
+        /// <summary>
+        /// Split a buffer into packets.
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <returns></returns>
+        protected virtual NetPacket[] SplitPackets(byte[] buffer)
+        {
+            return NetPacket.Split(buffer);
         }
 
         /// <summary>
@@ -200,6 +207,18 @@ namespace Ether.Network
         /// Waits for user input.
         /// </summary>
         protected abstract void Idle();
+
+        /// <summary>
+        /// On client connected.
+        /// </summary>
+        /// <param name="client">Connected client</param>
+        protected abstract void OnClientConnected(NetConnection client);
+
+        /// <summary>
+        /// On client disconnected.
+        /// </summary>
+        /// <param name="client">Disconnected client</param>
+        protected abstract void OnClientDisconnected(NetConnection client);
 
         #region IDisposable Support
         private bool disposedValue;
@@ -215,7 +234,7 @@ namespace Ether.Network
                 this.listenThread = null;
                 this.handlerThread = null;
 
-                this.listenSocket.Dispose();
+                this.Socket.Dispose();
 
                 foreach (var connection in this.clients)
                     connection.Dispose();
@@ -229,11 +248,11 @@ namespace Ether.Network
         /// <summary>
         /// Dispose the server resources.
         /// </summary>
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+        //public new void Dispose()
+        //{
+        //    this.Dispose(true);
+        //    GC.SuppressFinalize(this);
+        //}
 
         #endregion
     }
