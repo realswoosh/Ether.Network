@@ -111,15 +111,14 @@ namespace Ether.Network
         {
             while (IsRunning)
             {
-                IEnumerable<NetDelayerAction> actionsReady = new List<NetDelayerAction>();
+                var actionsReady = new List<NetDelayerAction>();
 
                 lock (syncActionsRoot)
                 {
-                    actionsReady = from x in actions
-                                   where x.CallTime < DateTime.Now
-                                   select x;
+                    actionsReady = actions.Where(x => x.CallTime < DateTime.Now).ToList();
                 }
 
+                if (actionsReady.Any())
                 foreach (var action in actionsReady)
                 {
                     action.Action();

@@ -25,6 +25,7 @@ namespace Ether.Network.Tests
             int actionCount = 0;
 
             NetDelayer.Start();
+
             // Register the action
             int actionId = NetDelayer.Register(() => Console.WriteLine("My Action"));
 
