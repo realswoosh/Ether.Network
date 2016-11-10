@@ -1,5 +1,7 @@
 ﻿using Ether.Network;
 using System;
+using Ether.Network.Packets;
+using System.Collections.Generic;
 
 namespace Server
 {
@@ -35,7 +37,7 @@ namespace Server
         {
             Console.WriteLine("Server started! Listening on port {0}", this.Configuration.Port);
             // TODO: do custom process on main thread.
-            while (true)
+            while (this.IsRunning)
             {
                 Console.ReadKey();
             }

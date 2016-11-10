@@ -8,13 +8,15 @@ using System.Threading;
 
 namespace Ether.Network
 {
-    public abstract class NetServer<T> : NetConnection, IDisposable where T : NetConnection, new()
+    public abstract class NetServer<T> : IDisposable where T : NetConnection, new()
     {
         private static object syncClients = new object();
         
         private readonly List<NetConnection> clients;
+        private Socket listenSocket;
         private Thread listenThread;
         private Thread handlerThread;
+        private Thread delayerThread;
 
         /// <summary>
         /// Gets the NetServer configuration.
@@ -63,15 +65,18 @@ namespace Ether.Network
 
                 this.Initialize();
 
-                this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                this.Socket.Bind(new IPEndPoint(this.Configuration.IpAddress, this.Configuration.Port));
-                this.Socket.Listen(100);
+                this.listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                this.listenSocket.Bind(new IPEndPoint(this.Configuration.IpAddress, this.Configuration.Port));
+                this.listenSocket.Listen(100);
 
                 this.listenThread = new Thread(this.ListenSocket);
                 this.listenThread.Start();
 
                 this.handlerThread = new Thread(this.HandleClients);
                 this.handlerThread.Start();
+
+                this.delayerThread = new Thread(NetDelayer.Start);
+                this.delayerThread.Start();
 
                 this.IsRunning = true;
 
@@ -86,8 +91,11 @@ namespace Ether.Network
         /// </summary>
         public void Stop()
         {
-            if (!this.IsRunning) return;
+            if (!this.IsRunning)
+                return;
+
             this.IsRunning = false;
+            NetDelayer.Stop();
             this.Dispose();
         }
 
@@ -98,9 +106,9 @@ namespace Ether.Network
         {
             while (this.IsRunning)
             {
-                if (this.Socket.Poll(100, SelectMode.SelectRead))
+                if (this.listenSocket.Poll(100, SelectMode.SelectRead))
                 {
-                    var client = Activator.CreateInstance(typeof(T), this.Socket.Accept()) as T;
+                    var client = Activator.CreateInstance(typeof(T), this.listenSocket.Accept()) as T;
                     
                     lock (syncClients)
                         this.clients.Add(client);
@@ -191,9 +199,9 @@ namespace Ether.Network
         /// <summary>
         /// Split a buffer into packets.
         /// </summary>
-        /// <param name="buffer"></param>
+        /// <param name="buffer">Incoming buffer</param>
         /// <returns></returns>
-        protected virtual NetPacketBase[] SplitPackets(byte[] buffer)
+        protected virtual IReadOnlyCollection<NetPacketBase> SplitPackets(byte[] buffer)
         {
             return NetPacket.Split(buffer);
         }
@@ -230,14 +238,18 @@ namespace Ether.Network
             {
                 this.listenThread.Join();
                 this.handlerThread.Join();
+                this.delayerThread.Join();
 
                 this.listenThread = null;
                 this.handlerThread = null;
+                this.delayerThread = null;
 
-                this.Socket.Dispose();
 
-                foreach (var connection in this.clients)
-                    connection.Dispose();
+
+                this.listenSocket.Dispose();
+
+                foreach (var client in this.clients)
+                    client.Dispose();
 
                 this.clients.Clear();
             }
@@ -248,11 +260,11 @@ namespace Ether.Network
         /// <summary>
         /// Dispose the server resources.
         /// </summary>
-        //public new void Dispose()
-        //{
-        //    this.Dispose(true);
-        //    GC.SuppressFinalize(this);
-        //}
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
 
         #endregion
     }

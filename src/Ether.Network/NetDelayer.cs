@@ -29,7 +29,7 @@ namespace Ether.Network
         {
         }
 
-        public static void Run()
+        public static void Start()
         {
             if (IsRunning)
                 return;
@@ -41,6 +41,11 @@ namespace Ether.Network
 
                 Thread.Sleep(1);
             }   
+        }
+
+        public static void Stop()
+        {
+            IsRunning = false;
         }
     }
 

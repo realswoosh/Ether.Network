@@ -8,7 +8,10 @@ namespace Ether.Network.Packets
 {
     public class NetPacket : NetPacketBase
     {
-        public override Byte[] Buffer
+        /// <summary>
+        /// Gets the packet buffer.
+        /// </summary>
+        public override byte[] Buffer
         {
             get
             {
@@ -20,12 +23,19 @@ namespace Ether.Network.Packets
             }
         }
 
+        /// <summary>
+        /// Creates a new NetPacket in write-only mode.
+        /// </summary>
         public NetPacket()
             : base()
         {
             this.Write(0); // Packet size
         }
 
+        /// <summary>
+        /// Creates a new NetPacket in read-only mode.
+        /// </summary>
+        /// <param name="buffer"></param>
         public NetPacket(byte[] buffer)
             : base(buffer)
         {
@@ -36,7 +46,7 @@ namespace Ether.Network.Packets
         /// </summary>
         /// <param name="buffer"></param>
         /// <returns></returns>
-        public static NetPacket[] Split(byte[] buffer)
+        public static IReadOnlyCollection<NetPacketBase> Split(byte[] buffer)
         {
             var packets = new List<NetPacket>();
 
@@ -61,7 +71,7 @@ namespace Ether.Network.Packets
                 }
             }
 
-            return packets.ToArray();
+            return packets;
         }
     }
 }
