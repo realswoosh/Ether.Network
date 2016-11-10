@@ -157,7 +157,9 @@ namespace Ether.Network
                 delayerThread.Join();
             delayerThread = null;
 
-            actions.Clear();
+            lock (syncActionsRoot)
+                actions.Clear();
+
             ActionCount = 0;
         }
     }
