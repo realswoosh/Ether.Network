@@ -10,11 +10,17 @@ namespace Ether.Network
     {
         private static object syncActionsRoot = new object();
         private static ICollection<NetDelayerAction> actions;
+        private static Thread delayerThread;
 
         /// <summary>
         /// Gets the running state of the NetDelayer.
         /// </summary>
         public static bool IsRunning { get; internal set; }
+
+        /// <summary>
+        /// Gets the actions count.
+        /// </summary>
+        public static int ActionCount { get; private set; }
 
         /// <summary>
         /// Initialize the static properties of the NetDelayer.
@@ -78,6 +84,7 @@ namespace Ether.Network
             lock (syncActionsRoot)
             {
                 actions.Add(delayedAction);
+                ActionCount = actions.Count;
             }
 
             return delayedAction.Id;
@@ -95,19 +102,13 @@ namespace Ether.Network
 
                 if (action != null)
                     actions.Remove(action);
+
+                ActionCount = actions.Count;
             }
         }
 
-        /// <summary>
-        /// Starts the NetDelayer.
-        /// </summary>
-        public static void Start()
+        private static void Run()
         {
-            if (IsRunning)
-                return;
-
-            IsRunning = true;
-
             while (IsRunning)
             {
                 IEnumerable<NetDelayerAction> actionsReady = new List<NetDelayerAction>();
@@ -133,11 +134,31 @@ namespace Ether.Network
         }
 
         /// <summary>
+        /// Starts the NetDelayer.
+        /// </summary>
+        public static void Start()
+        {
+            if (IsRunning)
+                return;
+
+            IsRunning = true;
+            delayerThread = new Thread(Run);
+            delayerThread.Start();
+        }
+
+        /// <summary>
         /// Stop the NetDelayer.
         /// </summary>
         public static void Stop()
         {
             IsRunning = false;
+
+            if (delayerThread != null)
+                delayerThread.Join();
+            delayerThread = null;
+
+            actions.Clear();
+            ActionCount = 0;
         }
     }
 
