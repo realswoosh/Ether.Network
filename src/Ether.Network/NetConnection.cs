@@ -61,13 +61,13 @@ namespace Ether.Network
         /// Handle packets.
         /// </summary>
         /// <param name="packet">Packet recieved.</param>
-        public virtual void HandleMessage(NetPacket packet) { }
+        public virtual void HandleMessage(NetPacketBase packet) { }
 
         /// <summary>
         /// Send a packet to this client.
         /// </summary>
         /// <param name="packet"></param>
-        public void Send(NetPacket packet)
+        public void Send(NetPacketBase packet)
         {
             this.Socket.Send(packet.Buffer);
         }
@@ -77,7 +77,7 @@ namespace Ether.Network
         /// </summary>
         /// <param name="destClient">Destination client</param>
         /// <param name="packet">Packet to send</param>
-        public void SendTo(NetConnection destClient, NetPacket packet)
+        public void SendTo(NetConnection destClient, NetPacketBase packet)
         {
             destClient.Send(packet);
         }
@@ -87,7 +87,7 @@ namespace Ether.Network
         /// </summary>
         /// <param name="clients">Clients</param>
         /// <param name="packet">Packet to send</param>
-        public void SendTo(ICollection<NetConnection> clients, NetPacket packet)
+        public void SendTo(ICollection<NetConnection> clients, NetPacketBase packet)
         {
             foreach (var client in clients)
                 client.Send(packet);

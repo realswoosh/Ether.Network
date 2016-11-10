@@ -28,7 +28,7 @@ namespace Server
             this.Send(packet);
         }
 
-        public override void HandleMessage(NetPacket packet)
+        public override void HandleMessage(NetPacketBase packet)
         {
             Console.WriteLine("Incoming message");
 

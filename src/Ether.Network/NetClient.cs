@@ -84,6 +84,6 @@ namespace Ether.Network
 
         public override void Greetings() { }
 
-        public override void HandleMessage(NetPacket packet) { }
+        public override void HandleMessage(NetPacketBase packet) { }
     }
 }

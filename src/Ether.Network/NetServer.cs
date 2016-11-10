@@ -193,7 +193,7 @@ namespace Ether.Network
         /// </summary>
         /// <param name="buffer"></param>
         /// <returns></returns>
-        protected virtual NetPacket[] SplitPackets(byte[] buffer)
+        protected virtual NetPacketBase[] SplitPackets(byte[] buffer)
         {
             return NetPacket.Split(buffer);
         }
