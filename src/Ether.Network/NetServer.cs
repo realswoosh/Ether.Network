@@ -16,7 +16,6 @@ namespace Ether.Network
         private Socket listenSocket;
         private Thread listenThread;
         private Thread handlerThread;
-        private Thread delayerThread;
 
         /// <summary>
         /// Gets the NetServer configuration.
@@ -75,8 +74,7 @@ namespace Ether.Network
                 this.handlerThread = new Thread(this.HandleClients);
                 this.handlerThread.Start();
 
-                this.delayerThread = new Thread(NetDelayer.Start);
-                this.delayerThread.Start();
+                NetDelayer.Start();
 
                 this.IsRunning = true;
 
@@ -238,14 +236,10 @@ namespace Ether.Network
             {
                 this.listenThread.Join();
                 this.handlerThread.Join();
-                this.delayerThread.Join();
 
                 this.listenThread = null;
                 this.handlerThread = null;
-                this.delayerThread = null;
-
-
-
+                
                 this.listenSocket.Dispose();
 
                 foreach (var client in this.clients)
