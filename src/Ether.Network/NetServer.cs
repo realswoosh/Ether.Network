@@ -59,6 +59,8 @@ namespace Ether.Network
         {
             if (this.IsRunning == false)
             {
+                this.IsRunning = true;
+
                 if (configuration != null)
                     this.Configuration = configuration;
 
@@ -76,7 +78,6 @@ namespace Ether.Network
 
                 NetDelayer.Start();
 
-                this.IsRunning = true;
 
                 this.Idle();
             }
@@ -166,6 +167,8 @@ namespace Ether.Network
                                 this.RemoveClient(client);
                             else
                                 Console.WriteLine($"Error: {e.Message}{Environment.NewLine}{e.StackTrace}");
+
+                            continue;
                         }
                     }
 
