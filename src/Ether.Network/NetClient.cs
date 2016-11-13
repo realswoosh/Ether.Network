@@ -1,5 +1,6 @@
 ﻿using Ether.Network.Packets;
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 
@@ -84,6 +85,16 @@ namespace Ether.Network
 
         public override void Greetings() { }
 
-        public override void HandleMessage(NetPacket packet) { }
+        public override void HandleMessage(NetPacketBase packet) { }
+
+        /// <summary>
+        /// Split a buffer into packets.
+        /// </summary>
+        /// <param name="buffer">Incoming buffer</param>
+        /// <returns></returns>
+        protected virtual IReadOnlyCollection<NetPacketBase> SplitPackets(byte[] buffer)
+        {
+            return NetPacket.Split(buffer);
+        }
     }
 }
