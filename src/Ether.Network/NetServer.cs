@@ -8,6 +8,10 @@ using System.Threading;
 
 namespace Ether.Network
 {
+    /// <summary>
+    /// NetServer 
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public abstract class NetServer<T> : IDisposable where T : NetConnection, new()
     {
         private static object syncClients = new object();
@@ -77,7 +81,6 @@ namespace Ether.Network
                 this.handlerThread.Start();
 
                 NetDelayer.Start();
-
 
                 this.Idle();
             }
@@ -163,11 +166,10 @@ namespace Ether.Network
                         }
                         catch (Exception e)
                         {
-                            if (!client.Socket.Connected)
-                                this.RemoveClient(client);
-                            else
-                                Console.WriteLine($"Error: {e.Message}{Environment.NewLine}{e.StackTrace}");
-
+#if DEBUG
+                            Console.WriteLine($"Error: {Environment.NewLine}{e.Message}{Environment.NewLine}{e.StackTrace}");
+#endif
+                            this.RemoveClient(client);
                             continue;
                         }
                     }
@@ -232,6 +234,10 @@ namespace Ether.Network
         #region IDisposable Support
         private bool disposedValue;
 
+        /// <summary>
+        /// Dispose the resources.
+        /// </summary>
+        /// <param name="disposing">Dispose or not the managed resources</param>
         protected virtual void Dispose(bool disposing)
         {
             if (disposedValue) return;

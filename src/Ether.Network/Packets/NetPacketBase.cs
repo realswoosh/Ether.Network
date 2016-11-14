@@ -7,13 +7,31 @@ using System.Threading.Tasks;
 
 namespace Ether.Network.Packets
 {
+    /// <summary>
+    /// NetPacketBase provides all methods to manage a packet at the memory level.
+    /// </summary>
     public abstract class NetPacketBase : IDisposable
     {
         private PacketStateType state;
+
+        /// <summary>
+        /// Packet memory stream.
+        /// </summary>
         protected MemoryStream memoryStream;
+
+        /// <summary>
+        /// Packet memory reader.
+        /// </summary>
         protected BinaryReader memoryReader;
+
+        /// <summary>
+        /// Packet memory writer.
+        /// </summary>
         protected BinaryWriter memoryWriter;
 
+        /// <summary>
+        /// Gets the packet buffer.
+        /// </summary>
         public abstract byte[] Buffer { get; }
 
         /// <summary>
