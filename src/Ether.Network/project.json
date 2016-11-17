@@ -1,12 +1,13 @@
 {
   "title": "Ether.Network",
   "copyright": "Filipe GOMES PEIXOTO © 2016",
+  "authors": [ "Filipe Gomes Peixoto" ],
   "description": "Simple and fast network library",
   "language": "en",
-  "version": "1.1.1-*",
+  "version": "1.1.2-*",
   "dependencies": {
     "NETStandard.Library": "1.6.0",
-    "System.Threading.Thread": "4.0.0"
+    "System.Threading.Thread": "4.3.0"
   },
   "frameworks": {
     "netstandard1.3": {
@@ -15,6 +16,12 @@
   },
   "buildOptions": {
     "xmlDoc": true,
-    "optimize": false
+    "optimize": true
+  },
+  "packOptions": {
+    "tags": [ "c#", "socket", "network", "server", "client" ],
+    "owners": [ "Filipe Gomes Peixoto" ],
+    "projectUrl": "https://github.com/Eastrall/Ether.Network",
+    "licenseUrl": "https://github.com/Eastrall/Ether.Network/blob/master/LICENSE"
   }
 }

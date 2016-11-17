@@ -137,7 +137,7 @@ namespace Ether.Network
                     {
                         foreach (var client in this.clients)
                         {
-                            if (client.Socket.Poll(100, SelectMode.SelectRead))
+                            if (client.Socket.Poll(10, SelectMode.SelectRead))
                                 clientsReady.Enqueue(client);
                         }
                     }
@@ -151,17 +151,18 @@ namespace Ether.Network
                             var buffer = new byte[client.Socket.Available];
                             var recievedDataSize = client.Socket.Receive(buffer);
 
-                            if (recievedDataSize <= 0)
-                                throw new Exception("Disconnected from the server");
-                            else
+                            if (recievedDataSize < 1)
                             {
-                                var recievedPackets = this.SplitPackets(buffer);
+                                this.RemoveClient(client);
+                                continue;
+                            }
 
-                                foreach (var packet in recievedPackets)
-                                {
-                                    client.HandleMessage(packet);
-                                    packet.Dispose();
-                                }
+                            var recievedPackets = this.SplitPackets(buffer);
+
+                            foreach (var packet in recievedPackets)
+                            {
+                                client.HandleMessage(packet);
+                                packet.Dispose();
                             }
                         }
                         catch (Exception e)
@@ -169,7 +170,9 @@ namespace Ether.Network
 #if DEBUG
                             Console.WriteLine($"Error: {Environment.NewLine}{e.Message}{Environment.NewLine}{e.StackTrace}");
 #endif
-                            this.RemoveClient(client);
+                            if (client.Socket.Connected == false)
+                                this.RemoveClient(client);
+
                             continue;
                         }
                     }
@@ -191,7 +194,10 @@ namespace Ether.Network
         {
             lock (syncClients)
             {
-                var clientToRemove = this.clients.Find(item => item != null && item == client);
+                var clientToRemove = this.clients.Find(item => item != null && item.Id == client.Id);
+
+                if (clientToRemove == null)
+                    Console.WriteLine("Cannot remove client. Unknow client {0}", client.Id);
 
                 this.clients.Remove(clientToRemove);
                 clientToRemove.Dispose();
