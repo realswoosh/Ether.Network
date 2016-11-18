@@ -92,7 +92,7 @@ namespace Ether.Network.Packets
         /// </summary>
         /// <typeparam name="T">Value type.</typeparam>
         /// <param name="value">Value.</param>
-        public void Write<T>(T value)
+        public virtual void Write<T>(T value)
         {
             if (this.state != PacketStateType.Write)
                 throw new InvalidOperationException("Packet is in read-only mode.");

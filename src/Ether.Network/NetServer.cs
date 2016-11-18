@@ -9,9 +9,9 @@ using System.Threading;
 namespace Ether.Network
 {
     /// <summary>
-    /// NetServer 
+    /// NetServer implemntation.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">Client type</typeparam>
     public abstract class NetServer<T> : IDisposable where T : NetConnection, new()
     {
         private static object syncClients = new object();
