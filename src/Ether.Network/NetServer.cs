@@ -16,10 +16,18 @@ namespace Ether.Network
     {
         private static object syncClients = new object();
         
-        private readonly List<NetConnection> clients;
         private Socket listenSocket;
         private Thread listenThread;
         private Thread handlerThread;
+        private List<NetConnection> clients;
+        
+        /// <summary>
+        /// Gets the NetServer clients list.
+        /// </summary>
+        public IReadOnlyCollection<NetConnection> Clients
+        {
+            get { return this.clients; }
+        }
 
         /// <summary>
         /// Gets the NetServer configuration.
