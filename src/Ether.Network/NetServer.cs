@@ -283,6 +283,11 @@ namespace Ether.Network
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>
+        /// Dispose the children resources.
+        /// </summary>
+        public abstract void DisposeServer();
+
         #endregion
     }
 }
