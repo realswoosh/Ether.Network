@@ -107,6 +107,9 @@ namespace Ether.Network
             }
         }
 
+        /// <summary>
+        /// Run the delayer thread.
+        /// </summary>
         private static void Run()
         {
             while (IsRunning)

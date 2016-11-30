@@ -6,7 +6,10 @@ using System.Net.Sockets;
 
 namespace Ether.Network
 {
-    public class NetClient : NetConnection
+    /// <summary>
+    /// NetClient class.
+    /// </summary>
+    public abstract class NetClient : NetConnection
     {
         private bool isRunning;
 
@@ -74,7 +77,7 @@ namespace Ether.Network
                 {
                     if (this.Socket.Connected == false)
                     {
-                        Console.WriteLine("Client disconnected");
+                        this.OnClientDisconnected();
                         this.isRunning = false;
                     }
                     else
@@ -86,6 +89,8 @@ namespace Ether.Network
         public override void Greetings() { }
 
         public override void HandleMessage(NetPacketBase packet) { }
+
+        protected abstract void OnClientDisconnected();
 
         /// <summary>
         /// Split a buffer into packets.
