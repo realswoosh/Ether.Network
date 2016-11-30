@@ -87,6 +87,7 @@ namespace Ether.Network.Tests
                 using (var packet = new NetPacket(buffer))
                     readText = packet.Read<string>();
             }
+            catch { }
             finally
             {
                 Assert.NotEqual(readText, text);
