@@ -24,8 +24,8 @@ namespace Ether.Network.Packets
             { typeof(long), reader => reader.ReadInt64()},
             { typeof(float), reader => reader.ReadSingle() },
             { typeof(double), reader => reader.ReadDouble() },
-            { typeof(byte[]), reader => reader.ReadBytes(count: reader.ReadInt32())},
-            { typeof(string), reader => new string(reader.ReadChars(count: reader.ReadInt32())) },
+            { typeof(byte[]), reader => reader.ReadBytes(count: reader.ReadUInt16())},
+            { typeof(string), reader => new string(reader.ReadChars(count: reader.ReadUInt16())) },
         };
 
         /// <summary>
