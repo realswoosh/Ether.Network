@@ -19,12 +19,12 @@ namespace Ether.Network
         private Socket listenSocket;
         private Thread listenThread;
         private Thread handlerThread;
-        private List<NetConnection> clients;
+        private List<T> clients;
         
         /// <summary>
         /// Gets the NetServer clients list.
         /// </summary>
-        public IReadOnlyCollection<NetConnection> Clients
+        public IReadOnlyCollection<T> Clients
         {
             get { return this.clients; }
         }
@@ -32,7 +32,7 @@ namespace Ether.Network
         /// <summary>
         /// Gets the NetServer configuration.
         /// </summary>
-        public NetConfiguration Configuration { get; protected set; }
+        public NetConfiguration ServerConfiguration { get; protected set; }
 
         /// <summary>
         /// Gets the value if the server is running.
@@ -46,9 +46,9 @@ namespace Ether.Network
             : base()
         {
             this.IsRunning = false;
-            this.clients = new List<NetConnection>();
+            this.clients = new List<T>();
 
-            this.Configuration = new NetConfiguration()
+            this.ServerConfiguration = new NetConfiguration()
             {
                 Ip = "127.0.0.1",
                 Port = 5000
@@ -74,12 +74,12 @@ namespace Ether.Network
                 this.IsRunning = true;
 
                 if (configuration != null)
-                    this.Configuration = configuration;
+                    this.ServerConfiguration = configuration;
 
                 this.Initialize();
 
                 this.listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                this.listenSocket.Bind(new IPEndPoint(this.Configuration.IpAddress, this.Configuration.Port));
+                this.listenSocket.Bind(new IPEndPoint(this.ServerConfiguration.IpAddress, this.ServerConfiguration.Port));
                 this.listenSocket.Listen(100);
 
                 this.listenThread = new Thread(this.ListenSocket);
@@ -116,7 +116,7 @@ namespace Ether.Network
         {
             while (this.IsRunning)
             {
-                if (this.listenSocket.Poll(100, SelectMode.SelectRead))
+                if (this.listenSocket.Poll(10, SelectMode.SelectRead))
                 {
                     var client = Activator.CreateInstance(typeof(T), this.listenSocket.Accept()) as T;
                     
@@ -237,13 +237,13 @@ namespace Ether.Network
         /// On client connected.
         /// </summary>
         /// <param name="client">Connected client</param>
-        protected abstract void OnClientConnected(NetConnection client);
+        protected abstract void OnClientConnected(T client);
 
         /// <summary>
         /// On client disconnected.
         /// </summary>
         /// <param name="client">Disconnected client</param>
-        protected abstract void OnClientDisconnected(NetConnection client);
+        protected abstract void OnClientDisconnected(T client);
 
         #region IDisposable Support
         private bool disposedValue;

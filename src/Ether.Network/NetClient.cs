@@ -27,13 +27,15 @@ namespace Ether.Network
         /// </summary>
         /// <param name="ip">Server ip address</param>
         /// <param name="port">Server port</param>
-        public void Connect(string ip, int port)
+        public bool Connect(string ip, int port)
         {
             if (this.Socket.Connected)
-                return;
+                return false;
 
             this.Socket.Connect(new IPEndPoint(IPAddress.Parse(ip), port));
             this.isRunning = true;
+
+            return this.Socket.Connected;
         }
 
         /// <summary>
@@ -42,7 +44,7 @@ namespace Ether.Network
         public void Disconnect()
         {
             if (this.Socket.Connected)
-                this.Socket.Dispose();
+                this.Dispose();
         }
 
         /// <summary>
@@ -86,10 +88,20 @@ namespace Ether.Network
             }
         }
 
+        /// <summary>
+        /// Say hello to the client.
+        /// </summary>
         public override void Greetings() { }
 
+        /// <summary>
+        /// Handles the incoming messages.
+        /// </summary>
+        /// <param name="packet"></param>
         public override void HandleMessage(NetPacketBase packet) { }
 
+        /// <summary>
+        /// When the client is disconnected from the host.
+        /// </summary>
         protected abstract void OnClientDisconnected();
 
         /// <summary>

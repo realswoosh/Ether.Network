@@ -2,6 +2,9 @@
 
 namespace Ether.Network.Extensions
 {
+    /// <summary>
+    /// Socket extension class.
+    /// </summary>
     public static class SocketExtensions
     {
         /// <summary>
