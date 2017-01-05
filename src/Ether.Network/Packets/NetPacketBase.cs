@@ -80,11 +80,13 @@ namespace Ether.Network.Packets
         /// <returns></returns>
         protected byte[] GetBuffer()
         {
+#if NET45 || NET451
+            return this.memoryStream.GetBuffer();
+#else
             ArraySegment<byte> buffer;
-
             this.memoryStream.TryGetBuffer(out buffer);
-
             return buffer.ToArray();
+#endif
         }
 
         /// <summary>
