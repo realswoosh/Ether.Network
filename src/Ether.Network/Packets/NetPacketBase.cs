@@ -70,7 +70,7 @@ namespace Ether.Network.Packets
         {
             this.state = PacketStateType.Read;
 
-            this.memoryStream = new MemoryStream(buffer, 0, buffer.Length);
+            this.memoryStream = new MemoryStream(buffer, 0, buffer.Length, false, true);
             this.memoryReader = new BinaryReader(this.memoryStream);
         }
 
