@@ -44,7 +44,10 @@ namespace Ether.Network
         public void Disconnect()
         {
             if (this.Socket.Connected)
+            {
                 this.Dispose();
+                this.isRunning = false;
+            }
         }
 
         /// <summary>
@@ -54,6 +57,9 @@ namespace Ether.Network
         {
             while (this.isRunning)
             {
+                if (this.Socket == null)
+                    throw new Exception("Socket is null");
+
                 if (!this.Socket.Poll(100, SelectMode.SelectRead))
                     continue;
 
@@ -66,7 +72,7 @@ namespace Ether.Network
                         throw new Exception("Disconnected");
                     else
                     {
-                        var recievedPackets = NetPacket.Split(buffer);
+                        var recievedPackets = this.SplitPackets(buffer);
 
                         foreach (var packet in recievedPackets)
                         {
@@ -77,7 +83,7 @@ namespace Ether.Network
                 }
                 catch (Exception e)
                 {
-                    if (this.Socket.Connected == false)
+                    if (this.Socket?.Connected == false)
                     {
                         this.OnClientDisconnected();
                         this.isRunning = false;
