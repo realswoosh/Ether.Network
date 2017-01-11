@@ -60,11 +60,11 @@ namespace Ether.Network
                 if (this.Socket == null)
                     throw new Exception("Socket is null");
 
-                if (!this.Socket.Poll(100, SelectMode.SelectRead))
-                    continue;
-
                 try
                 {
+                    if (!this.Socket.Poll(100, SelectMode.SelectRead))
+                        continue;
+
                     var buffer = new byte[this.Socket.Available];
                     var recievedDataSize = this.Socket.Receive(buffer);
 
