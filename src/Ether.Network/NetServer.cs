@@ -8,19 +8,31 @@ using System.Threading;
 
 namespace Ether.Network
 {
+    /// <summary>
+    /// NetServer implemntation.
+    /// </summary>
+    /// <typeparam name="T">Client type</typeparam>
     public abstract class NetServer<T> : IDisposable where T : NetConnection, new()
     {
         private static object syncClients = new object();
         
-        private readonly List<NetConnection> clients;
         private Socket listenSocket;
         private Thread listenThread;
         private Thread handlerThread;
+        private List<T> clients;
+        
+        /// <summary>
+        /// Gets the NetServer clients list.
+        /// </summary>
+        public IReadOnlyCollection<T> Clients
+        {
+            get { return this.clients; }
+        }
 
         /// <summary>
         /// Gets the NetServer configuration.
         /// </summary>
-        public NetConfiguration Configuration { get; protected set; }
+        public NetConfiguration ServerConfiguration { get; protected set; }
 
         /// <summary>
         /// Gets the value if the server is running.
@@ -34,9 +46,9 @@ namespace Ether.Network
             : base()
         {
             this.IsRunning = false;
-            this.clients = new List<NetConnection>();
+            this.clients = new List<T>();
 
-            this.Configuration = new NetConfiguration()
+            this.ServerConfiguration = new NetConfiguration()
             {
                 Ip = "127.0.0.1",
                 Port = 5000
@@ -62,12 +74,12 @@ namespace Ether.Network
                 this.IsRunning = true;
 
                 if (configuration != null)
-                    this.Configuration = configuration;
+                    this.ServerConfiguration = configuration;
 
                 this.Initialize();
 
                 this.listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                this.listenSocket.Bind(new IPEndPoint(this.Configuration.IpAddress, this.Configuration.Port));
+                this.listenSocket.Bind(new IPEndPoint(this.ServerConfiguration.IpAddress, this.ServerConfiguration.Port));
                 this.listenSocket.Listen(100);
 
                 this.listenThread = new Thread(this.ListenSocket);
@@ -77,7 +89,6 @@ namespace Ether.Network
                 this.handlerThread.Start();
 
                 NetDelayer.Start();
-
 
                 this.Idle();
             }
@@ -105,7 +116,7 @@ namespace Ether.Network
         {
             while (this.IsRunning)
             {
-                if (this.listenSocket.Poll(100, SelectMode.SelectRead))
+                if (this.listenSocket.Poll(10, SelectMode.SelectRead))
                 {
                     var client = Activator.CreateInstance(typeof(T), this.listenSocket.Accept()) as T;
                     
@@ -134,7 +145,7 @@ namespace Ether.Network
                     {
                         foreach (var client in this.clients)
                         {
-                            if (client.Socket.Poll(100, SelectMode.SelectRead))
+                            if (client.Socket.Poll(10, SelectMode.SelectRead))
                                 clientsReady.Enqueue(client);
                         }
                     }
@@ -148,25 +159,27 @@ namespace Ether.Network
                             var buffer = new byte[client.Socket.Available];
                             var recievedDataSize = client.Socket.Receive(buffer);
 
-                            if (recievedDataSize <= 0)
-                                throw new Exception("Disconnected from the server");
-                            else
+                            if (recievedDataSize < 1)
                             {
-                                var recievedPackets = this.SplitPackets(buffer);
+                                this.RemoveClient(client);
+                                continue;
+                            }
 
-                                foreach (var packet in recievedPackets)
-                                {
-                                    client.HandleMessage(packet);
-                                    packet.Dispose();
-                                }
+                            var recievedPackets = this.SplitPackets(buffer);
+
+                            foreach (var packet in recievedPackets)
+                            {
+                                client.HandleMessage(packet);
+                                packet.Dispose();
                             }
                         }
                         catch (Exception e)
                         {
-                            if (!client.Socket.Connected)
+#if DEBUG
+                            Console.WriteLine($"Error: {Environment.NewLine}{e.Message}{Environment.NewLine}{e.StackTrace}");
+#endif
+                            if (client.Socket.Connected == false)
                                 this.RemoveClient(client);
-                            else
-                                Console.WriteLine($"Error: {e.Message}{Environment.NewLine}{e.StackTrace}");
 
                             continue;
                         }
@@ -189,7 +202,10 @@ namespace Ether.Network
         {
             lock (syncClients)
             {
-                var clientToRemove = this.clients.Find(item => item != null && item == client);
+                var clientToRemove = this.clients.Find(item => item != null && item.Id == client.Id);
+
+                if (clientToRemove == null)
+                    Console.WriteLine("Cannot remove client. Unknow client {0}", client.Id);
 
                 this.clients.Remove(clientToRemove);
                 clientToRemove.Dispose();
@@ -221,17 +237,21 @@ namespace Ether.Network
         /// On client connected.
         /// </summary>
         /// <param name="client">Connected client</param>
-        protected abstract void OnClientConnected(NetConnection client);
+        protected abstract void OnClientConnected(T client);
 
         /// <summary>
         /// On client disconnected.
         /// </summary>
         /// <param name="client">Disconnected client</param>
-        protected abstract void OnClientDisconnected(NetConnection client);
+        protected abstract void OnClientDisconnected(T client);
 
         #region IDisposable Support
         private bool disposedValue;
 
+        /// <summary>
+        /// Dispose the resources.
+        /// </summary>
+        /// <param name="disposing">Dispose or not the managed resources</param>
         protected virtual void Dispose(bool disposing)
         {
             if (disposedValue) return;
@@ -262,6 +282,11 @@ namespace Ether.Network
             this.Dispose(true);
             GC.SuppressFinalize(this);
         }
+
+        /// <summary>
+        /// Dispose the children resources.
+        /// </summary>
+        public abstract void DisposeServer();
 
         #endregion
     }

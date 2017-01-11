@@ -1,12 +1,13 @@
-﻿using Ether.Network.Enums;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace Ether.Network.Packets
 {
-    public class NetPacket : NetPacketBase
+    /// <summary>
+    /// Represents a Ehter.Network built-in packet.
+    /// </summary>
+    public sealed class NetPacket : NetPacketBase
     {
         /// <summary>
         /// Gets the packet buffer.

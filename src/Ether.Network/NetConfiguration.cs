@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace Ether.Network
 {
+    /// <summary>
+    /// Ether.Network configuration structure.
+    /// </summary>
     public class NetConfiguration
     {
         /// <summary>

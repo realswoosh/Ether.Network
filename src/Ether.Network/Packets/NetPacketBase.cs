@@ -7,13 +7,31 @@ using System.Threading.Tasks;
 
 namespace Ether.Network.Packets
 {
+    /// <summary>
+    /// NetPacketBase provides all methods to manage a packet at the memory level.
+    /// </summary>
     public abstract class NetPacketBase : IDisposable
     {
         private PacketStateType state;
+
+        /// <summary>
+        /// Packet memory stream.
+        /// </summary>
         protected MemoryStream memoryStream;
+
+        /// <summary>
+        /// Packet memory reader.
+        /// </summary>
         protected BinaryReader memoryReader;
+
+        /// <summary>
+        /// Packet memory writer.
+        /// </summary>
         protected BinaryWriter memoryWriter;
 
+        /// <summary>
+        /// Gets the packet buffer.
+        /// </summary>
         public abstract byte[] Buffer { get; }
 
         /// <summary>
@@ -52,7 +70,7 @@ namespace Ether.Network.Packets
         {
             this.state = PacketStateType.Read;
 
-            this.memoryStream = new MemoryStream(buffer, 0, buffer.Length);
+            this.memoryStream = new MemoryStream(buffer, 0, buffer.Length, false, true);
             this.memoryReader = new BinaryReader(this.memoryStream);
         }
 
@@ -62,11 +80,13 @@ namespace Ether.Network.Packets
         /// <returns></returns>
         protected byte[] GetBuffer()
         {
+#if NET45 || NET451
+            return this.memoryStream.GetBuffer();
+#else
             ArraySegment<byte> buffer;
-
             this.memoryStream.TryGetBuffer(out buffer);
-
             return buffer.ToArray();
+#endif
         }
 
         /// <summary>
@@ -74,7 +94,7 @@ namespace Ether.Network.Packets
         /// </summary>
         /// <typeparam name="T">Value type.</typeparam>
         /// <param name="value">Value.</param>
-        public void Write<T>(T value)
+        public virtual void Write<T>(T value)
         {
             if (this.state != PacketStateType.Write)
                 throw new InvalidOperationException("Packet is in read-only mode.");
@@ -90,7 +110,7 @@ namespace Ether.Network.Packets
         /// </summary>
         /// <typeparam name="T">Value type.</typeparam>
         /// <returns>Value.</returns>
-        public T Read<T>()
+        public virtual T Read<T>()
         {
             if (this.state != PacketStateType.Read)
                 throw new InvalidOperationException("Packet is in write-only mode.");

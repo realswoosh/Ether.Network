@@ -6,6 +6,9 @@ using System.Threading;
 
 namespace Ether.Network
 {
+    /// <summary>
+    /// Ether.Network action delayer.
+    /// </summary>
     public static class NetDelayer
     {
         private static object syncActionsRoot = new object();
@@ -107,6 +110,9 @@ namespace Ether.Network
             }
         }
 
+        /// <summary>
+        /// Run the delayer thread.
+        /// </summary>
         private static void Run()
         {
             while (IsRunning)

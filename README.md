@@ -9,6 +9,14 @@ This library is coded in C# using .NET Core framework to target Windows and Linu
 
 For now we use the basic synchronous sockets, and in the future we'll add the support of asynchronous sockets to increase performances and stability.
 
+## Framework support
+
+- .NET Core 1.0
+- .NET Framework 4.6.1
+- .NET Framework 4.6
+- .NET Framework 4.5.1
+- .NET Framework 4.5
+
 ## Features
 
 ### Version 1.1.0

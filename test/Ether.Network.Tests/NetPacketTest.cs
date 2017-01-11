@@ -81,11 +81,17 @@ namespace Ether.Network.Tests
             byte[] buffer = Encoding.ASCII.GetBytes(text);
             string readText = null;
 
-            // don't read the packet size must fail
-            using (var packet = new NetPacket(buffer))
-                readText = packet.Read<string>();
-
-            Assert.NotEqual(readText, text);
+            try
+            {
+                // don't read the packet size must fail
+                using (var packet = new NetPacket(buffer))
+                    readText = packet.Read<string>();
+            }
+            catch { }
+            finally
+            {
+                Assert.NotEqual(readText, text);
+            }
         }
     }
 }
