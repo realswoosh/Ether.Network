@@ -3,7 +3,7 @@
   "testRunner": "xunit",
   "dependencies": {
     "dotnet-test-xunit": "2.2.0-preview2-build1029",
-    "Ether.Network": "1.1.6",
+    "Ether.Network": "1.1.7",
     "Microsoft.NETCore.App": "1.0.0",
     "xunit": "2.2.0-beta2-build3300"
   },
