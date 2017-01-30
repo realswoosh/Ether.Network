@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-dotnet test ../test/Ether.Network.Tests
+dotnet test ./test/Ether.Network.Tests
