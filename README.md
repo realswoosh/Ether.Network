@@ -49,87 +49,81 @@ using Ether.Network.Packets;
 using System;
 using System.Net.Sockets;
 
-namespace MyServer
+public class Program
 {
-    public class Program
+    static void Main(string[] args)
     {
-        public static void Main(string[] args)
+        using (var server = new MyServer())
+            server.Start();
+    }
+}
+
+public class MyServer : NetServer<Client>
+{
+    public MyServer()
+    {
+        this.ServerConfiguration = new NetConfiguration()
         {
-            using (var server = new Server())
-                server.Start();
+            Ip = "127.0.0.1",
+            Port = 5555
+        };
+    }
+
+    public override void DisposeServer()
+    {
+        // Dispose the server unmanaged resources
+    }
+
+    protected override void Idle()
+    {
+        while (this.IsRunning) ;
+    }
+
+    protected override void Initialize()
+    {
+        // Initialize the server resources
+    }
+
+    protected override void OnClientConnected(Client client)
+    {
+        Console.WriteLine("New client connected with id: {0}", client.Id);
+    }
+
+    protected override void OnClientDisconnected(Client client)
+    {
+        Console.WriteLine("Client with id {0} disconnected.", client.Id);
+    }
+}
+
+public class Client : NetConnection
+{
+    public Client()
+    {
+    }
+
+    public Client(Socket acceptedSocket)
+        : base(acceptedSocket)
+    {
+    }
+
+    public override void Greetings()
+    {
+        // Send a packet to say hi to the incoming client
+        using (var packet = new NetPacket())
+        {
+            packet.Write(42); // header
+            packet.Write("Hello!");
+            this.Send(packet);
         }
     }
 
-    public class Server : NetServer<Client>
+    public override void HandleMessage(NetPacketBase packet)
     {
-        public Server()
-            : base()
-        {
-            this.Configuration = new NetConfiguration()
-            {
-                Ip = "127.0.0.1",
-                Port = 4444
-            };
-        }
+        // Handle incoming messages
+        var header = packet.Read<int>();
+        var message = packet.Read<string>();
 
-        protected override void OnClientConnected(NetConnection client)
-        {
-            Console.WriteLine("New client connected. Id: {0}", client.Id);
-        }
-
-        protected override void OnClientDisconnected(NetConnection client)
-        {
-            Console.WriteLine("Client disconnected");
-        }
-
-        protected override void Initialize()
-        {
-            // TODO: initialize specific server resources at startup.
-        }
-
-        protected override void Idle()
-        {
-            Console.WriteLine("Server started! Listening on port {0}", this.Configuration.Port);
-            // TODO: do custom process on main thread.
-            while (this.IsRunning)
-            {
-                Console.ReadKey();
-            }
-        }
-    }
-
-    public class Client : NetConnection
-    {
-        public Client()
-            : base()
-        {
-        }
-
-        public Client(Socket socket)
-            : base(socket)
-        {
-        }
-
-        public override void Greetings()
-        {
-            // say hi to the connected client
-            var hiPacket = new NetPacket();
-
-            hiPacket.Write(42); // packet header
-            hiPacket.Write("Hello client!");
-
-            this.Send(hiPacket);
-        }
-
-        public override void HandleMessage(NetPacketBase packet)
-        {
-            int value = packet.Read<int>(); // packet header
-            string message = packet.Read<string>();
-
-            Console.WriteLine("message from client: {0}", message);
-
-            base.HandleMessage(packet);
-        }
+        Console.WriteLine("Client {0} said: '{1}'", this.Id, message);
     }
 }
 ```
@@ -141,36 +135,32 @@ using Ether.Network;
 using Ether.Network.Packets;
 using System;
 
-namespace MyClient
+public class MyClient : NetClient
 {
-    public class Program
+    public MyClient()
     {
-        public static void Main(string[] args)
-        {
-            Console.Title = "Client";
+    }
 
-            using (var client = new Client())
-            {
-                client.Connect("127.0.0.1", 4444);
-                client.Run();
-            }
+    public override void HandleMessage(NetPacketBase packet)
+    {
+        // Handle incoming messages
+
+        var header = packet.Read<int>();
+        var message = packet.Read<string>();
+
+        Console.WriteLine("I recieved the message: '{0}'", message);
+
+        using (var newPacket = new NetPacket())
+        {
+            newPacket.Write(43);
+            newPacket.Write("Hello world! This is a message from the client");
+
+            this.Send(newPacket);
         }
     }
 
-    public class Client : NetClient
+    protected override void OnClientDisconnected()
     {
-        public Client()
-            : base() { }
-
-        public override void HandleMessage(NetPacketBase packet)
-        {
-            int header = packet.Read<int>();
-            string message = packet.Read<string>();
-
-            Console.WriteLine("Message from server: {0}", message);
-
-            base.HandleMessage(packet);
-        }
     }
 }
 ```
