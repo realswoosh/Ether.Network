@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.26403.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{E3A5C7DB-692B-4D82-BC37-6D81D39D6365}"
 EndProject
@@ -10,23 +10,27 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore
 		.travis.yml = .travis.yml
-		build.sh = build.sh
-		global.json = global.json
 		LICENSE = LICENSE
 		README.md = README.md
-		test.sh = test.sh
 	EndProjectSection
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Ether.Network", "src\Ether.Network\Ether.Network.xproj", "{7D878116-CEF9-4618-BF86-113E76BCD2E4}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{6CDD0F23-B527-4D1F-A5FA-2886010AA172}"
-EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "Ether.Network.Tests", "test\Ether.Network.Tests\Ether.Network.Tests.xproj", "{3851DF6B-8F22-4AF6-9D24-EC91934D7179}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{5462F9D6-0750-4ED3-B46A-9B0B5051BF8B}"
 	ProjectSection(SolutionItems) = preProject
 		docs\Home.md = docs\Home.md
 		docs\NetServer.txt = docs\NetServer.txt
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ether.Network", "src\Ether.Network\Ether.Network.csproj", "{7D878116-CEF9-4618-BF86-113E76BCD2E4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ether.Network.Tests", "test\Ether.Network.Tests\Ether.Network.Tests.csproj", "{3851DF6B-8F22-4AF6-9D24-EC91934D7179}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "scripts", "scripts", "{F7B316B7-BA9F-493A-A3E3-F07922A31FDD}"
+	ProjectSection(SolutionItems) = preProject
+		scripts\build nuget.sh = scripts\build nuget.sh
+		scripts\build.sh = scripts\build.sh
+		scripts\test.sh = scripts\test.sh
 	EndProjectSection
 EndProject
 Global

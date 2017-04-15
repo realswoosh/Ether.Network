@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace Ether.Network
 {
@@ -91,6 +92,8 @@ namespace Ether.Network
                     else
                         Console.WriteLine("Error: {0}", e.Message);
                 }
+
+                Thread.Sleep(100);
             }
         }
 
