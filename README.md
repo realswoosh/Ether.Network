@@ -1,6 +1,7 @@
 # Ether.Network 
 
 [![Build Status](https://travis-ci.org/Eastrall/Ether.Network.svg?branch=develop)](https://travis-ci.org/Eastrall/Ether.Network)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/e84d77087d6940f79061799383cc1432)](https://www.codacy.com/app/Eastrall/Ether.Network?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Eastrall/Ether.Network&amp;utm_campaign=Badge_Grade)
 [![NuGet Status](https://img.shields.io/nuget/v/Ether.Network.svg)](https://www.nuget.org/packages/Ether.Network/)
 
 Ether.Network is a basic library to make quickly a simple server or client using sockets.
