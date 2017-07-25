@@ -1,5 +1,6 @@
 ﻿using Ether.Network.Helpers;
 using Ether.Network.Packets;
+using Ether.Network.Tests.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;

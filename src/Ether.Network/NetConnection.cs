@@ -1,5 +1,4 @@
-﻿using Ether.Network.Helpers;
-using Ether.Network.Packets;
+﻿using Ether.Network.Packets;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;

@@ -16,9 +16,9 @@ namespace Ether.Network.Packets
         {
             get
             {
-                this.memoryWriter.Seek(0, SeekOrigin.Begin);
+                this.MemoryWriter.Seek(0, SeekOrigin.Begin);
                 this.Write(this.Size);
-                this.memoryWriter.Seek(this.Size, SeekOrigin.Begin);
+                this.MemoryWriter.Seek(this.Size, SeekOrigin.Begin);
 
                 return this.GetBuffer();
             }
@@ -28,7 +28,6 @@ namespace Ether.Network.Packets
         /// Creates a new NetPacket in write-only mode.
         /// </summary>
         public NetPacket()
-            : base()
         {
             this.Write(0); // Packet size
         }
