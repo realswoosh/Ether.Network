@@ -13,7 +13,7 @@ namespace Ether.Network
         /// <summary>
         /// Gets the generated unique Id of the connection.
         /// </summary>
-        public int Id { get; protected set; }
+        public Guid Id { get; protected set; }
 
         /// <summary>
         /// Gets the connection socket.
@@ -34,7 +34,7 @@ namespace Ether.Network
         /// <param name="acceptedSocket">Client socket.</param>
         public NetConnection(Socket acceptedSocket)
         {
-            this.Id = Helper.GenerateUniqueId();
+            this.Id = Guid.NewGuid();
             this.Initialize(acceptedSocket);
         }
 
