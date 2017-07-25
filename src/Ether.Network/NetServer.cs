@@ -13,10 +13,12 @@ namespace Ether.Network
 
         public void Start()
         {
+            throw new NotSupportedException();
         }
 
         public void Stop()
         {
+            throw new NotSupportedException();
         }
     }
 }

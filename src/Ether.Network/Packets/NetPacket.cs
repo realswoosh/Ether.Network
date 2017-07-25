@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Ether.Network.Exceptions;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -65,9 +66,9 @@ namespace Ether.Network.Packets
                         packets.Add(new NetPacket(readerStream.ReadBytes(packetSize)));
                     }
                 }
-                catch (Exception e)
+                catch
                 {
-                    Console.WriteLine("An error occured during the packet spliting. {0}", e.Message);
+                    throw new EtherPacketException();
                 }
             }
 

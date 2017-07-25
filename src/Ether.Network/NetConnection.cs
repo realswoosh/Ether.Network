@@ -76,7 +76,7 @@ namespace Ether.Network
         /// </summary>
         /// <param name="destClient">Destination client</param>
         /// <param name="packet">Packet to send</param>
-        public void SendTo(NetConnection destClient, NetPacketBase packet)
+        public static void SendTo(NetConnection destClient, NetPacketBase packet)
         {
             destClient.Send(packet);
         }
@@ -86,7 +86,7 @@ namespace Ether.Network
         /// </summary>
         /// <param name="clients">Clients</param>
         /// <param name="packet">Packet to send</param>
-        public void SendTo(ICollection<NetConnection> clients, NetPacketBase packet)
+        public static void SendTo(ICollection<NetConnection> clients, NetPacketBase packet)
         {
             foreach (var client in clients)
                 client.Send(packet);

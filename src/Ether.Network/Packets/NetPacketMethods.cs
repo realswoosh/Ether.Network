@@ -10,7 +10,7 @@ namespace Ether.Network.Packets
         /// <summary>
         /// Read methods dictionary.
         /// </summary>
-        internal static readonly Dictionary<Type, Func<BinaryReader, object>> ReadMethods = new Dictionary<Type, Func<BinaryReader, object>>()
+        internal static readonly Dictionary<Type, Func<BinaryReader, object>> ReadMethods = new Dictionary<Type, Func<BinaryReader, object>>
         {
             { typeof(char), reader => reader.ReadChar() },
             { typeof(byte), reader => reader.ReadByte() },
@@ -31,7 +31,7 @@ namespace Ether.Network.Packets
         /// <summary>
         /// Write methods dictionary.
         /// </summary>
-        internal static readonly Dictionary<Type, Action<BinaryWriter, object>> WriteMethods = new Dictionary<Type, Action<BinaryWriter, object>>()
+        internal static readonly Dictionary<Type, Action<BinaryWriter, object>> WriteMethods = new Dictionary<Type, Action<BinaryWriter, object>>
         {
             { typeof(char), (writer, value) => writer.Write((char)value) },
             { typeof(byte), (writer, value) => writer.Write((byte)value) },

@@ -11,7 +11,7 @@ namespace Ether.Network.Packets
     /// </summary>
     public abstract class NetPacketBase : IDisposable
     {
-        private PacketStateType _state;
+        private readonly PacketStateType _state;
 
         /// <summary>
         /// Packet memory stream.
@@ -53,7 +53,6 @@ namespace Ether.Network.Packets
         protected NetPacketBase()
         {
             this._state = PacketStateType.Write;
-
             this.MemoryStream = new MemoryStream();
             this.MemoryWriter = new BinaryWriter(this.MemoryStream);
         }
@@ -65,7 +64,6 @@ namespace Ether.Network.Packets
         protected NetPacketBase(byte[] buffer)
         {
             this._state = PacketStateType.Read;
-
             this.MemoryStream = new MemoryStream(buffer, 0, buffer.Length, false, true);
             this.MemoryReader = new BinaryReader(this.MemoryStream);
         }
