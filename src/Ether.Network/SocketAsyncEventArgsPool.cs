@@ -5,6 +5,9 @@ using System.Threading;
 
 namespace Ether.Network
 {
+    /// <summary>
+    /// Represents a pool of <see cref="SocketAsyncEventArgs"/>.
+    /// </summary>
     internal sealed class SocketAsyncEventArgsPool
     {
         private int _nextTokenId = 0;
@@ -30,9 +33,11 @@ namespace Ether.Network
 
             return tokenId;
         }
-
-        // Removes a SocketAsyncEventArgs instance from the pool.
-        // returns SocketAsyncEventArgs removed from the pool.
+        
+        /// <summary>
+        /// Removes a <see cref="SocketAsyncEventArgs"/> instance from this pool.
+        /// </summary>
+        /// <returns>Returns a <see cref="SocketAsyncEventArgs"/> from this pool.</returns>
         internal SocketAsyncEventArgs Pop()
         {
             lock (this._pool)
@@ -40,9 +45,11 @@ namespace Ether.Network
                 return this._pool.Pop();
             }
         }
-
-        // Add a SocketAsyncEventArg instance to the pool.
-        // "item" = SocketAsyncEventArgs instance to add to the pool.
+        
+        /// <summary>
+        /// Add a <see cref="SocketAsyncEventArgs"/> instance to the pool.
+        /// </summary>
+        /// <param name="item"></param>
         internal void Push(SocketAsyncEventArgs item)
         {
             if (item == null)

@@ -19,20 +19,20 @@ namespace Ether.Network
 
         // Byte array maintained by the Buffer Manager.
         private byte[] bufferBlock;
-        private Stack<int> freeIndexPool;
-        private int currentIndex;
-        private int bufferBytesAllocatedForEachSaea;
+        private Stack<int> _freeIndexPool;
+        private int _currentIndex;
+        private int _bufferBytesAllocatedForEachSaea;
 
         public BufferManager(int totalBytes, int totalBufferBytesInEachSaeaObject)
         {
             _totalBytesInBufferBlock = totalBytes;
-            this.currentIndex = 0;
-            this.bufferBytesAllocatedForEachSaea = totalBufferBytesInEachSaeaObject;
-            this.freeIndexPool = new Stack<int>();
+            this._currentIndex = 0;
+            this._bufferBytesAllocatedForEachSaea = totalBufferBytesInEachSaeaObject;
+            this._freeIndexPool = new Stack<int>();
         }
 
         // Allocates buffer space used by the buffer pool
-        internal void InitBuffer()
+        internal void Initialize()
         {
             // Create one large buffer block.
             this.bufferBlock = new byte[_totalBytesInBufferBlock];
@@ -45,24 +45,24 @@ namespace Ether.Network
         // returns true if the buffer was successfully set, else false
         internal bool SetBuffer(SocketAsyncEventArgs args)
         {
-            if (this.freeIndexPool.Count > 0)
+            if (this._freeIndexPool.Count > 0)
             {
                 //This if-statement is only true if you have called the FreeBuffer
                 //method previously, which would put an offset for a buffer space
                 //back into this stack.
-                args.SetBuffer(this.bufferBlock, this.freeIndexPool.Pop(), this.bufferBytesAllocatedForEachSaea);
+                args.SetBuffer(this.bufferBlock, this._freeIndexPool.Pop(), this._bufferBytesAllocatedForEachSaea);
             }
             else
             {
                 //Inside this else-statement is the code that is used to set the
                 //buffer for each SAEA object when the pool of SAEA objects is built
                 //in the Init method.
-                if ((_totalBytesInBufferBlock - this.bufferBytesAllocatedForEachSaea) < this.currentIndex)
+                if ((_totalBytesInBufferBlock - this._bufferBytesAllocatedForEachSaea) < this._currentIndex)
                 {
                     return false;
                 }
-                args.SetBuffer(this.bufferBlock, this.currentIndex, this.bufferBytesAllocatedForEachSaea);
-                this.currentIndex += this.bufferBytesAllocatedForEachSaea;
+                args.SetBuffer(this.bufferBlock, this._currentIndex, this._bufferBytesAllocatedForEachSaea);
+                this._currentIndex += this._bufferBytesAllocatedForEachSaea;
             }
             return true;
         }
@@ -75,7 +75,7 @@ namespace Ether.Network
         // this app's running.
         internal void FreeBuffer(SocketAsyncEventArgs args)
         {
-            this.freeIndexPool.Push(args.Offset);
+            this._freeIndexPool.Push(args.Offset);
             args.SetBuffer(null, 0, 0);
         }
     }
