@@ -5,11 +5,11 @@ namespace Ether.Network
 {
     public class BufferManager
     {
+        private readonly int _capacity;
+        private readonly int _bufferSize;
+        private readonly int _totalBufferSize;
+        private readonly byte[] _buffer;
         private int _currentIndex;
-        private int _capacity;
-        private int _bufferSize;
-        private int _totalBufferSize;
-        private byte[] _buffer;
         private Stack<int> _freeIndexPool;
 
         public BufferManager(int capacity, int bufferSize)

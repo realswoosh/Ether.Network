@@ -8,8 +8,8 @@ namespace SampleServer
     {
         static void Main(string[] args)
         {
-            var server = new SampleServer();
-            server.Start();
+            using (var server = new SampleServer())
+                server.Start();
         }
     }
 

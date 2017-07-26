@@ -6,7 +6,7 @@ namespace Ether.Network
 {
     public sealed class NetServerConfiguration
     {
-        private INetServer _server;
+        private readonly INetServer _server;
         private int _port;
         private int _backlog;
         private int _bufferSize;
@@ -70,7 +70,7 @@ namespace Ether.Network
 
         private void SetValue<T>(ref T container, T value)
         {
-            if (this._server != null && this._server.IsRunning && container != null && !container.Equals(value))
+            if (this._server != null && this._server.IsRunning && !container.Equals(value))
                 throw new EtherConfigurationException("Cannot change configuration once the server is running.");
 
             container = value;

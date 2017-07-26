@@ -9,13 +9,13 @@ using System.Threading;
 
 namespace Ether.Network
 {
-    public abstract class NetServer<T> : INetServer where T : NetConnection, new()
+    public abstract class NetServer<T> : INetServer, IDisposable where T : NetConnection, new()
     {
+        private readonly ManualResetEvent _resetEvent;
+        private readonly SocketAsyncEventArgs _acceptArgs;
+
         private bool _isRunning;
-        private ManualResetEvent _resetEvent;
-        private SocketAsyncEventArgs _acceptArgs;
         private BufferManager _bufferManager;
-        private Semaphore _semaphore;
 
         protected Socket Socket { get; private set; }
 
@@ -39,18 +39,14 @@ namespace Ether.Network
                 throw new InvalidOperationException("Server is already running.");
             
             if (this.Configuration.Port <= 0)
-                throw new EtherConfigurationException($"{this.Configuration.Port} is not a valid port."); // Invalid port
+                throw new EtherConfigurationException($"{this.Configuration.Port} is not a valid port.");
 
             var address = this.Configuration.Address;
             if (address == null)
-                throw new EtherConfigurationException($"Invalid host : {this.Configuration.Host}"); // Invalid ip or host
-
-            int maxNumberOfConnections = this.Configuration.MaximumNumberOfConnections;
-
-            this._semaphore = new Semaphore(maxNumberOfConnections, maxNumberOfConnections);
-            this._bufferManager = new BufferManager(maxNumberOfConnections, this.Configuration.BufferSize);
+                throw new EtherConfigurationException($"Invalid host : {this.Configuration.Host}");
+            
+            this._bufferManager = new BufferManager(this.Configuration.MaximumNumberOfConnections, this.Configuration.BufferSize);
             this.Initialize();
-
             this.Socket.Bind(new IPEndPoint(address, this.Configuration.Port));
             this.Socket.Listen(this.Configuration.Backlog);
             this.StartAccept();
@@ -61,8 +57,11 @@ namespace Ether.Network
 
         public void Stop()
         {
-            this._isRunning = false;
-            this._resetEvent.Set();
+            if (this._isRunning)
+            {
+                this._isRunning = false;
+                this._resetEvent.Set();
+            }
         }
 
         protected abstract void Initialize();
@@ -96,5 +95,41 @@ namespace Ether.Network
         {
             this.ProcessAccept(e);
         }
+
+        #region IDisposable Support
+        private bool _disposed = false;
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    this.Stop();
+
+                    if (this.Socket != null)
+                    {
+                        this.Socket.Dispose();
+                        this.Socket = null;
+                    }
+                }
+
+                _disposed = true;
+            }
+            else
+                throw new ObjectDisposedException(nameof(NetServer<T>));
+        }
+        
+        ~NetServer()
+        {
+            this.Dispose(false);
+        }
+        
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+        #endregion
     }
 }
