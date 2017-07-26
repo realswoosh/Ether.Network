@@ -8,8 +8,11 @@ namespace Ether.Network
     /// <summary>
     /// Net connection representing a connection.
     /// </summary>
-    public class NetConnection : IDisposable
+    public abstract class NetConnection : IDisposable
     {
+        private int _bufferSize;
+        private int _bufferOffset;
+
         /// <summary>
         /// Gets the generated unique Id of the connection.
         /// </summary>
@@ -21,46 +24,28 @@ namespace Ether.Network
         public Socket Socket { get; protected set; }
         
         /// <summary>
-        /// Creates a new NetConnection instance.
+        /// Creates a new <see cref="NetConnection"/> instance.
         /// </summary>
-        public NetConnection()
-            : this(null)
+        protected NetConnection()
         {
         }
-
-        /// <summary>
-        /// Creates a new NetConnection instance with a socket.
-        /// </summary>
-        /// <param name="acceptedSocket">Client socket.</param>
-        public NetConnection(Socket acceptedSocket)
+        
+        internal void Initialize(Socket socket, SocketAsyncEventArgs e, int bufferSize)
         {
-            this.Id = Guid.NewGuid();
-            this.Initialize(acceptedSocket);
-        }
-
-        /// <summary>
-        /// Initialize the socket and send greetings to the client to inform him that he's connected.
-        /// </summary>
-        /// <param name="acceptedSocket">Client socket.</param>
-        internal void Initialize(Socket acceptedSocket)
-        {
-            if (this.Socket != null)
-                return;
-
-            this.Socket = acceptedSocket;
-            this.Greetings();
+            this.Socket = socket;
+            this._bufferSize = bufferSize;
         }
 
         /// <summary>
         /// Send welcome packet to client.
         /// </summary>
-        public virtual void Greetings() { }
+        public abstract void Greetings();
 
         /// <summary>
         /// Handle packets.
         /// </summary>
         /// <param name="packet">Packet recieved.</param>
-        public virtual void HandleMessage(NetPacketBase packet) { }
+        public abstract void HandleMessage(NetPacketBase packet);
 
         /// <summary>
         /// Send a packet to this client.

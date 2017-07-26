@@ -9,12 +9,11 @@ using System.Threading;
 
 namespace Ether.Network
 {
-    public abstract class NetServer<T> where T : NetConnection, new()
+    public abstract class NetServer<T> : INetServer where T : NetConnection, new()
     {
-        private static readonly int recieveSendOpAloc = 2;
-
-        private SocketAsyncEventArgsPool _acceptPool;
-        private SocketAsyncEventArgsPool _handlerPool;
+        private bool _isRunning;
+        private ManualResetEvent _resetEvent;
+        private SocketAsyncEventArgs _acceptArgs;
         private BufferManager _bufferManager;
         private Semaphore _semaphore;
 
@@ -22,131 +21,80 @@ namespace Ether.Network
 
         protected NetServerConfiguration Configuration { get; private set; }
 
+        public bool IsRunning => this._isRunning;
+
         protected NetServer()
         {
-            this.Configuration = new NetServerConfiguration();
+            this.Configuration = new NetServerConfiguration(this);
             this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            this._resetEvent = new ManualResetEvent(false);
+            this._isRunning = false;
+            this._acceptArgs = new SocketAsyncEventArgs();
+            this._acceptArgs.Completed += this.AcceptCompleted;
         }
 
         public void Start()
         {
+            if (this._isRunning)
+                throw new InvalidOperationException("Server is already running.");
+            
             if (this.Configuration.Port <= 0)
                 throw new EtherConfigurationException($"{this.Configuration.Port} is not a valid port."); // Invalid port
 
             var address = this.Configuration.Address;
             if (address == null)
-                throw new EtherConfigurationException(); // Invalid ip or host
+                throw new EtherConfigurationException($"Invalid host : {this.Configuration.Host}"); // Invalid ip or host
 
             int maxNumberOfConnections = this.Configuration.MaximumNumberOfConnections;
 
             this._semaphore = new Semaphore(maxNumberOfConnections, maxNumberOfConnections);
-            this._bufferManager = new BufferManager(
-                this.Configuration.RecieveBufferSize * this.Configuration.MaximumNumberOfConnections * recieveSendOpAloc,
-                this.Configuration.RecieveBufferSize);
-            this._bufferManager.Initialize();
-            
-            this._acceptPool = new SocketAsyncEventArgsPool(maxNumberOfConnections);
-            for (int i = 0; i < maxNumberOfConnections; i++)
-                this._acceptPool.Push(this.CreateForAccept());
-
-            this._handlerPool = new SocketAsyncEventArgsPool(maxNumberOfConnections);
-            for (int i = 0; i < maxNumberOfConnections; i++)
-            {
-                SocketAsyncEventArgs socketAsyncEventArgs = this.CreateForReceive();
-                this._bufferManager.SetBuffer(socketAsyncEventArgs);
-                this._handlerPool.Push(socketAsyncEventArgs);
-            }
-
+            this._bufferManager = new BufferManager(maxNumberOfConnections, this.Configuration.BufferSize);
             this.Initialize();
 
             this.Socket.Bind(new IPEndPoint(address, this.Configuration.Port));
             this.Socket.Listen(this.Configuration.Backlog);
             this.StartAccept();
+
+            this._isRunning = true;
+            this._resetEvent.WaitOne();
         }
 
         public void Stop()
         {
-            throw new NotSupportedException();
+            this._isRunning = false;
+            this._resetEvent.Set();
         }
+
+        protected abstract void Initialize();
+
+        protected abstract void OnClientConnected();
+
+        protected abstract void OnClientDisconnected();
 
         private void StartAccept()
         {
-            SocketAsyncEventArgs acceptEventArg;
-
-            if (this._acceptPool.Count > 1)
-            {
-                try
-                {
-                    acceptEventArg = this._acceptPool.Pop();
-                }
-                catch
-                {
-                    acceptEventArg = this.CreateForAccept();
-                }
-            }
-            else
-                acceptEventArg = this.CreateForAccept();
-
-            this._semaphore.WaitOne();
-            bool raiseEvent = this.Socket.AcceptAsync(acceptEventArg);
-            
-            if (!raiseEvent)
-                ProcessAccept(acceptEventArg);
+            if (this._acceptArgs.AcceptSocket != null)
+                this._acceptArgs.AcceptSocket = null;
+            if (!this.Socket.AcceptAsync(this._acceptArgs))
+                this.ProcessAccept(this._acceptArgs);
         }
 
         private void ProcessAccept(SocketAsyncEventArgs e)
         {
-            if (e.SocketError != SocketError.Success)
+            if (e.SocketError == SocketError.Success)
             {
-                this.StartAccept();
-
-                (e.UserToken as T).Socket.Shutdown(SocketShutdown.Both);
-                this._acceptPool.Push(e);
+                NetConnection client = new T();
+                client.Initialize(e.AcceptSocket, e, this.Configuration.BufferSize);
+                
+                this.OnClientConnected();
             }
 
             this.StartAccept();
-
-            var receiveSendEventArgs = this._handlerPool.Pop();
-            receiveSendEventArgs.AcceptSocket = e.AcceptSocket;
-            e.AcceptSocket = null;
-            this._acceptPool.Push(e);
-
-            this.StartReceive(receiveSendEventArgs);
         }
 
-        private void StartReceive(SocketAsyncEventArgs e)
-        {
-        }
-
-        private SocketAsyncEventArgs CreateForAccept()
-        {
-            var saea = new SocketAsyncEventArgs();
-
-            saea.Completed += this.Accept_Completed;
-            saea.UserToken = new NetConnection();
-
-            return saea;
-        }
-
-        private SocketAsyncEventArgs CreateForReceive()
-        {
-            var saea = new SocketAsyncEventArgs();
-
-            saea.Completed += this.IO_Completed;
-            saea.UserToken = new T();
-
-            return saea;
-        }
-
-        private void Accept_Completed(object sender, SocketAsyncEventArgs e)
+        private void AcceptCompleted(object sender, SocketAsyncEventArgs e)
         {
             this.ProcessAccept(e);
         }
-
-        private void IO_Completed(object sender, SocketAsyncEventArgs e)
-        {
-        }
-
-        protected abstract void Initialize();
     }
 }
