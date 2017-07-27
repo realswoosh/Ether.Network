@@ -12,27 +12,9 @@ For now we use the basic synchronous sockets, and in the future we'll add the su
 
 ## Framework support
 
-- .NET Core 1.0
-- .NET Framework 4.6.1
-- .NET Framework 4.6
+- .NET Core 1.0 (netstandard1.3)
 - .NET Framework 4.5.1
 - .NET Framework 4.5
-
-## Features
-
-### Version 1.1.0
-
-- [NetPacket][netpacket] : Packet abstraction. You can now create our own packet implementation.
-- [NetDelayer][netdelayer] : Call actions every X milliseconds.
-- [NetServer][netserver]: NetServer abstraction.
-	- Custom treatments on your incoming data by overriding the `NetServer.SplitPackets` method.
-	- OnClientConnected/Disconnected virtual methods. Can be overrided.
-
-### Version 1.0.0
-
-- [NetServer][netserver]: Socket server implementation handling multiple [Clients][netconnection]
-- [NetClient][netclient]: Socket client implementation
-- [NetPacket][netpacket]: Read/Write packet implementation.
 
 ## How to install
 
