@@ -15,6 +15,8 @@
 - Remove .NET Framework 4.6 support
 - Remove .NET Framework 4.6.1 support
 
+## [Released]
+
 ## [1.1.7] - 2017-01-11
 
 ### Changed
