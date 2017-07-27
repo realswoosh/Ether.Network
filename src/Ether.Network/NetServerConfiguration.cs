@@ -70,10 +70,11 @@ namespace Ether.Network
 
         private void SetValue<T>(ref T container, T value)
         {
-            if (this._server != null && this._server.IsRunning && !container.Equals(value))
+            if (this._server != null && this._server.IsRunning)
                 throw new EtherConfigurationException("Cannot change configuration once the server is running.");
 
-            container = value;
+            if (!Equals(container, value))
+                container = value;
         }
     }
 }

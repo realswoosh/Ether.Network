@@ -1,5 +1,6 @@
 ﻿using Ether.Network.Exceptions;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -11,6 +12,7 @@ namespace Ether.Network
 {
     public abstract class NetServer<T> : INetServer, IDisposable where T : NetConnection, new()
     {
+        private readonly ConcurrentBag<T> _clients;
         private readonly ManualResetEvent _resetEvent;
         private readonly SocketAsyncEventArgs _acceptArgs;
 
@@ -27,6 +29,7 @@ namespace Ether.Network
         {
             this.Configuration = new NetServerConfiguration(this);
             this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            this._clients = new ConcurrentBag<T>();
             this._resetEvent = new ManualResetEvent(false);
             this._isRunning = false;
             this._acceptArgs = new SocketAsyncEventArgs();
@@ -84,7 +87,8 @@ namespace Ether.Network
             {
                 NetConnection client = new T();
                 client.Initialize(e.AcceptSocket, e, this.Configuration.BufferSize);
-                
+
+                this._clients.Add(client as T);
                 this.OnClientConnected();
             }
 
@@ -97,7 +101,7 @@ namespace Ether.Network
         }
 
         #region IDisposable Support
-        private bool _disposed = false;
+        private bool _disposed;
 
         protected virtual void Dispose(bool disposing)
         {

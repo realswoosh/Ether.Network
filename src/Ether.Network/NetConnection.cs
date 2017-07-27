@@ -12,6 +12,7 @@ namespace Ether.Network
     {
         private int _bufferSize;
         private int _bufferOffset;
+        private SocketAsyncEventArgs _socketAsync;
 
         /// <summary>
         /// Gets the generated unique Id of the connection.
@@ -33,7 +34,39 @@ namespace Ether.Network
         internal void Initialize(Socket socket, SocketAsyncEventArgs e, int bufferSize)
         {
             this.Socket = socket;
+            this._socketAsync = e;
             this._bufferSize = bufferSize;
+            this._bufferOffset = e.Offset;
+
+            this.StartReceive();
+        }
+
+        private void StartReceive()
+        {
+            if (this.Socket.Connected)
+            {
+                if (!this.Socket.ReceiveAsync(this._socketAsync))
+                {
+                    this.ProcessReceive(this._socketAsync);
+                }
+            }
+        }
+
+        private void ProcessReceive(SocketAsyncEventArgs e)
+        {
+            if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
+            {
+                switch (e.LastOperation)
+                {
+                    case SocketAsyncOperation.Receive:
+                        break;
+                    case SocketAsyncOperation.Send:
+                        break;
+                }
+            }
+            else
+            {
+            }
         }
 
         /// <summary>
@@ -53,7 +86,6 @@ namespace Ether.Network
         /// <param name="packet"></param>
         public void Send(NetPacketBase packet)
         {
-            this.Socket.Send(packet.Buffer);
         }
 
         /// <summary>

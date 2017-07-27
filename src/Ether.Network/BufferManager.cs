@@ -5,19 +5,15 @@ namespace Ether.Network
 {
     public class BufferManager
     {
-        private readonly int _capacity;
         private readonly int _bufferSize;
-        private readonly int _totalBufferSize;
         private readonly byte[] _buffer;
+        private readonly Stack<int> _freeIndexPool;
         private int _currentIndex;
-        private Stack<int> _freeIndexPool;
 
         public BufferManager(int capacity, int bufferSize)
         {
-            this._capacity = capacity;
             this._bufferSize = bufferSize;
-            this._totalBufferSize = this._capacity * this._bufferSize;
-            this._buffer = new byte[this._totalBufferSize];
+            this._buffer = new byte[capacity * bufferSize];
             this._freeIndexPool = new Stack<int>();
         }
 
