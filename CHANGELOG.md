@@ -10,6 +10,8 @@
 
 ### Changed
 
+- NetServer socket management. Now using [SocketAsyncEventArgs](https://msdn.microsoft.com/en-us/library/system.net.sockets.socketasynceventargs(v=vs.110).aspx) for scalability.
+
 ### Removed
 
 - Remove .NET Framework 4.6 support
