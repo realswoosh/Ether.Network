@@ -6,9 +6,7 @@
 
 Ether.Network is a basic library to make quickly a simple server or client using sockets.
 
-This library is coded in C# using .NET Core framework to target Windows and Linux operating systems.
-
-For now we use the basic synchronous sockets, and in the future we'll add the support of asynchronous sockets to increase performances and stability.
+This library is coded with C# using .NET Core framework to target Windows and Linux operating systems.
 
 ## Framework support
 
@@ -148,7 +146,6 @@ public class MyClient : NetClient
 }
 ```
 
-[netdelayer]: src/Ether.Network/NetDelayer.cs
 [netserver]: src/Ether.Network/NetServer.cs
 [netclient]: src/Ether.Network/NetClient.cs
 [netpacket]: src/Ether.Network/Packets/NetPacket.cs

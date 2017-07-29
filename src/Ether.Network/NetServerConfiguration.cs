@@ -1,4 +1,5 @@
 ﻿using Ether.Network.Exceptions;
+using Ether.Network.Utils;
 using System.Linq;
 using System.Net;
 
@@ -64,16 +65,8 @@ namespace Ether.Network
         /// <summary>
         /// Gets the listening address.
         /// </summary>
-        internal IPAddress Address
-        {
-            get
-            {
-                var host = Dns.GetHostAddressesAsync(this.Host).Result.First().ToString();
+        internal IPAddress Address => NetUtils.GetIpAddress(this._host);
 
-                return IPAddress.TryParse(host, out IPAddress address) ? address : null;
-            }
-        }
-        
         /// <summary>
         /// Creates a new <see cref="NetServerConfiguration"/>.
         /// </summary>

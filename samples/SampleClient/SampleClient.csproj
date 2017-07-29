@@ -5,4 +5,8 @@
     <TargetFramework>netcoreapp1.0</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Ether.Network\Ether.Network.csproj" />
+  </ItemGroup>
+
 </Project>
