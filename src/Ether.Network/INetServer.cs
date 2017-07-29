@@ -1,14 +1,23 @@
-﻿using Ether.Network.Packets;
-using System.Collections.Generic;
-
-namespace Ether.Network
+﻿namespace Ether.Network
 {
+    /// <summary>
+    /// NetServer interface.
+    /// </summary>
     public interface INetServer
     {
+        /// <summary>
+        /// Gets the <see cref="INetServer"/> running state.
+        /// </summary>
         bool IsRunning { get; }
-        void Start();
-        void Stop();
 
-        IReadOnlyCollection<NetPacketBase> SplitPackets(byte[] buffer);
+        /// <summary>
+        /// Start the server.
+        /// </summary>
+        void Start();
+
+        /// <summary>
+        /// Stop the server.
+        /// </summary>
+        void Stop();
     }
 }

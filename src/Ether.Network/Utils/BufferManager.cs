@@ -1,15 +1,23 @@
 ﻿using System.Collections.Concurrent;
 using System.Net.Sockets;
 
-namespace Ether.Network
+namespace Ether.Network.Utils
 {
-    public class BufferManager
+    /// <summary>
+    /// Buffer manager.
+    /// </summary>
+    internal sealed class BufferManager
     {
         private readonly int _bufferSize;
         private readonly byte[] _buffer;
         private readonly ConcurrentStack<int> _freeIndexPool;
         private int _currentIndex;
 
+        /// <summary>
+        /// Creates a new <see cref="BufferManager"/> instance.
+        /// </summary>
+        /// <param name="capacity">Maximal capacity</param>
+        /// <param name="bufferSize">Buffer size per item</param>
         public BufferManager(int capacity, int bufferSize)
         {
             this._bufferSize = bufferSize;
@@ -17,6 +25,10 @@ namespace Ether.Network
             this._freeIndexPool = new ConcurrentStack<int>();
         }
 
+        /// <summary>
+        /// Sets the buffer for a <see cref="SocketAsyncEventArgs"/>.
+        /// </summary>
+        /// <param name="e"></param>
         public void SetBuffer(SocketAsyncEventArgs e)
         {
             if (this._freeIndexPool.Count > 0 && this._freeIndexPool.TryPop(out int offset))
@@ -28,6 +40,10 @@ namespace Ether.Network
             }
         }
 
+        /// <summary>
+        /// Releases the buffer for a <see cref="SocketAsyncEventArgs"/>.
+        /// </summary>
+        /// <param name="e"></param>
         public void FreeBuffer(SocketAsyncEventArgs e)
         {
             this._freeIndexPool.Push(e.Offset);

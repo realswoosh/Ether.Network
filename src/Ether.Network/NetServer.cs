@@ -1,16 +1,19 @@
 ﻿using Ether.Network.Exceptions;
 using Ether.Network.Packets;
+using Ether.Network.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 
 namespace Ether.Network
 {
+    /// <summary>
+    /// Fully managed TCP socket server.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public abstract class NetServer<T> : INetServer, IDisposable where T : NetConnection, new()
     {
         private readonly ConcurrentBag<T> _clients;
@@ -22,12 +25,29 @@ namespace Ether.Network
         private SocketAsyncEventArgsPool _readPool;
         private SocketAsyncEventArgsPool _writePool;
 
+        /// <summary>
+        /// Gets the <see cref="NetServer{T}"/> listening socket.
+        /// </summary>
         protected Socket Socket { get; private set; }
 
+        /// <summary>
+        /// Gets the <see cref="NetServer{T}"/> configuration
+        /// </summary>
         protected NetServerConfiguration Configuration { get; private set; }
 
+        /// <summary>
+        /// Gets the <see cref="NetServer{T}"/> running state.
+        /// </summary>
         public bool IsRunning => this._isRunning;
+        
+        /// <summary>
+        /// Gets the connected client.
+        /// </summary>
+        public IReadOnlyCollection<T> Clients => this._clients as IReadOnlyCollection<T>;
 
+        /// <summary>
+        /// Creates a new <see cref="NetServer{T}"/> instance.
+        /// </summary>
         protected NetServer()
         {
             this.Configuration = new NetServerConfiguration(this);
@@ -39,6 +59,9 @@ namespace Ether.Network
             this._acceptArgs.Completed += this.IO_Completed;
         }
 
+        /// <summary>
+        /// Initialize and start the server.
+        /// </summary>
         public void Start()
         {
             if (this._isRunning)
@@ -68,6 +91,9 @@ namespace Ether.Network
             this._resetEvent.WaitOne();
         }
 
+        /// <summary>
+        /// Stop the server.
+        /// </summary>
         public void Stop()
         {
             if (this._isRunning)
@@ -77,12 +103,28 @@ namespace Ether.Network
             }
         }
 
+        /// <summary>
+        /// Initialize the server resourrces.
+        /// </summary>
         protected abstract void Initialize();
 
+        /// <summary>
+        /// Triggered when a new client is connected to the server.
+        /// </summary>
+        /// <param name="connection"></param>
         protected abstract void OnClientConnected(T connection);
 
+        /// <summary>
+        /// Triggered when a client disconnects from the server.
+        /// </summary>
+        /// <param name="connection"></param>
         protected abstract void OnClientDisconnected(T connection);
 
+        /// <summary>
+        /// Split an incoming network buffer.
+        /// </summary>
+        /// <param name="buffer">Incoming data buffer</param>
+        /// <returns>Readonly collection of <see cref="NetPacketBase"/></returns>
         protected virtual IReadOnlyCollection<NetPacketBase> SplitPackets(byte[] buffer)
         {
             return NetPacket.Split(buffer);
@@ -111,7 +153,7 @@ namespace Ether.Network
                 readArgs.Completed += this.IO_Completed;
                 this._bufferManager.SetBuffer(readArgs);
 
-                if (!e.AcceptSocket.ReceiveAsync(readArgs))
+                if (e.AcceptSocket != null && !e.AcceptSocket.ReceiveAsync(readArgs))
                     this.ProcessReceive(readArgs);
             }
 
@@ -213,6 +255,10 @@ namespace Ether.Network
 
         private bool _disposed;
 
+        /// <summary>
+        /// Dispose the <see cref="NetServer{T}"/> resources.
+        /// </summary>
+        /// <param name="disposing"></param>
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
@@ -246,11 +292,17 @@ namespace Ether.Network
                 throw new ObjectDisposedException(nameof(NetServer<T>));
         }
         
+        /// <summary>
+        /// Destroys the <see cref="NetServer{T}"/> instance.
+        /// </summary>
         ~NetServer()
         {
             this.Dispose(false);
         }
-        
+
+        /// <summary>
+        /// Dispose the <see cref="NetServer{T}"/> resources.
+        /// </summary>
         public void Dispose()
         {
             this.Dispose(true);

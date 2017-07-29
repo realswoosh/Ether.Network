@@ -1,15 +1,20 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Net.Sockets;
-using System.Text;
 
-namespace Ether.Network
+namespace Ether.Network.Utils
 {
-    public sealed class SocketAsyncEventArgsPool : IDisposable
+    /// <summary>
+    /// Represents an object pool of <see cref="SocketAsyncEventArgs"/> elements.
+    /// </summary>
+    internal sealed class SocketAsyncEventArgsPool : IDisposable
     {
         private readonly ConcurrentStack<SocketAsyncEventArgs> _socketPool;
 
+        /// <summary>
+        /// Creates a new <see cref="SocketAsyncEventArgsPool"/> instance with a maximal capacity.
+        /// </summary>
+        /// <param name="capacity">Maximal capacity</param>
         public SocketAsyncEventArgsPool(int capacity)
         {
             this._socketPool = new ConcurrentStack<SocketAsyncEventArgs>();
@@ -18,6 +23,10 @@ namespace Ether.Network
                 this._socketPool.Push(new SocketAsyncEventArgs());
         }
 
+        /// <summary>
+        /// Pops a <see cref="SocketAsyncEventArgs"/> of the top of the stack.
+        /// </summary>
+        /// <returns></returns>
         public SocketAsyncEventArgs Pop()
         {
             if (this._socketPool.TryPop(out SocketAsyncEventArgs socketAsyncEventArgs))
@@ -25,6 +34,10 @@ namespace Ether.Network
             return null;
         }
 
+        /// <summary>
+        /// Push a <see cref="SocketAsyncEventArgs"/> to the top of the stack.
+        /// </summary>
+        /// <param name="socketAsyncEventArgs"></param>
         public void Push(SocketAsyncEventArgs socketAsyncEventArgs)
         {
             this._socketPool.Push(socketAsyncEventArgs);
