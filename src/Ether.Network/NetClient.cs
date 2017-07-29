@@ -132,7 +132,7 @@ namespace Ether.Network
         /// <param name="port">Remote port</param>
         private void StartConnect(IPAddress address, int port)
         {
-            this._socketConnectArgs.RemoteEndPoint = new IPEndPoint(address, this._port);
+            this._socketConnectArgs.RemoteEndPoint = new IPEndPoint(address, port);
 
             if (!this.Socket.ConnectAsync(this._socketConnectArgs))
                 this.ProcessConnect(this._socketConnectArgs);

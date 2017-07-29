@@ -278,6 +278,9 @@ namespace Ether.Network
                 case SocketAsyncOperation.Send:
                     this.ProcessSend(e);
                     break;
+                case SocketAsyncOperation.Disconnect: break;
+                default:
+                    throw new InvalidOperationException("Unexpected SocketAsyncOperation.");
             }
         }
 
