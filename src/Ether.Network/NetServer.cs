@@ -206,13 +206,13 @@ namespace Ether.Network
         private void ProcessSend(SocketAsyncEventArgs e)
         {
             var netConnection = e.UserToken as NetConnection;
-            bool cleanup = true;
+            bool resetBuffer = true;
 
             if (e.SocketError == SocketError.Success)
             {
                 if (e.BytesTransferred < e.Buffer.Length)
                 {
-                    cleanup = false;
+                    resetBuffer = false;
                     e.SetBuffer(e.BytesTransferred, e.Buffer.Length - e.BytesTransferred);
                     if (netConnection.Socket != null && !netConnection.Socket.SendAsync(e))
                         this.ProcessSend(e);
@@ -220,10 +220,10 @@ namespace Ether.Network
             }
             else
             {
-                Console.WriteLine("Disconnected ProcessSend()");
+                this.OnClientDisconnected(netConnection as T);
             }
 
-            if (cleanup)
+            if (resetBuffer)
             {
                 e.UserToken = null;
                 e.SetBuffer(null, 0, 0);
@@ -247,6 +247,8 @@ namespace Ether.Network
                     break;
                 case SocketAsyncOperation.Send:
                     this.ProcessSend(e);
+                    break;
+                default:
                     break;
             }
         }
