@@ -1,66 +1,64 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net.Sockets;
-using System.Threading;
+using System.Text;
 
 namespace Ether.Network
 {
-    /// <summary>
-    /// Represents a pool of <see cref="SocketAsyncEventArgs"/>.
-    /// </summary>
-    internal sealed class SocketAsyncEventArgsPool
+    public sealed class SocketAsyncEventArgsPool : IDisposable
     {
-        private int _nextTokenId = 0;
-        private Stack<SocketAsyncEventArgs> _pool;
-        
-        /// <summary>
-        /// Initialize the object pool to the specified size.
-        /// </summary>
-        /// <param name="capacity">Maximum number of <see cref="SocketAsyncEventArgs"/>.</param>
-        internal SocketAsyncEventArgsPool(int capacity)
+        private readonly ConcurrentStack<SocketAsyncEventArgs> _socketPool;
+
+        public SocketAsyncEventArgsPool(int capacity)
         {
-            this._pool = new Stack<SocketAsyncEventArgs>(capacity);
+            this._socketPool = new ConcurrentStack<SocketAsyncEventArgs>();
+
+            for (int i = 0; i < capacity; i++)
+                this._socketPool.Push(new SocketAsyncEventArgs());
         }
 
-        /// <summary>
-        /// Gets the number of <see cref="SocketAsyncEventArgs"/> in the pool.
-        /// </summary>
-        internal int Count => this._pool.Count;
-
-        internal int AssignTokenId()
+        public SocketAsyncEventArgs Pop()
         {
-            Int32 tokenId = Interlocked.Increment(ref _nextTokenId);
-
-            return tokenId;
+            if (this._socketPool.TryPop(out SocketAsyncEventArgs socketAsyncEventArgs))
+                return socketAsyncEventArgs;
+            return null;
         }
-        
-        /// <summary>
-        /// Removes a <see cref="SocketAsyncEventArgs"/> instance from this pool.
-        /// </summary>
-        /// <returns>Returns a <see cref="SocketAsyncEventArgs"/> from this pool.</returns>
-        internal SocketAsyncEventArgs Pop()
+
+        public void Push(SocketAsyncEventArgs socketAsyncEventArgs)
         {
-            lock (this._pool)
+            this._socketPool.Push(socketAsyncEventArgs);
+        }
+
+        #region IDisposable Support
+
+        private bool _disposedValue;
+
+        void Dispose(bool disposing)
+        {
+            if (!_disposedValue)
             {
-                return this._pool.Pop();
+                if (disposing)
+                {
+                    foreach (SocketAsyncEventArgs e in this._socketPool)
+                        e.Dispose();
+                }
+                
+                _disposedValue = true;
             }
         }
         
-        /// <summary>
-        /// Add a <see cref="SocketAsyncEventArgs"/> instance to the pool.
-        /// </summary>
-        /// <param name="item"></param>
-        internal void Push(SocketAsyncEventArgs item)
+        ~SocketAsyncEventArgsPool()
         {
-            if (item == null)
-            {
-                throw new ArgumentNullException("Items added to a SocketAsyncEventArgsPool cannot be null");
-            }
-
-            lock (this._pool)
-            {
-                this._pool.Push(item);
-            }
+            this.Dispose(false);
         }
+        
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        #endregion
     }
 }

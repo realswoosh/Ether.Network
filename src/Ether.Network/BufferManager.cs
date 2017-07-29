@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
 using System.Net.Sockets;
 
 namespace Ether.Network
@@ -7,37 +7,31 @@ namespace Ether.Network
     {
         private readonly int _bufferSize;
         private readonly byte[] _buffer;
-        private readonly Stack<int> _freeIndexPool;
+        private readonly ConcurrentStack<int> _freeIndexPool;
         private int _currentIndex;
 
         public BufferManager(int capacity, int bufferSize)
         {
             this._bufferSize = bufferSize;
             this._buffer = new byte[capacity * bufferSize];
-            this._freeIndexPool = new Stack<int>();
+            this._freeIndexPool = new ConcurrentStack<int>();
         }
 
         public void SetBuffer(SocketAsyncEventArgs e)
         {
-            lock (this._freeIndexPool)
+            if (this._freeIndexPool.Count > 0 && this._freeIndexPool.TryPop(out int offset))
+                e.SetBuffer(this._buffer, offset, this._bufferSize);
+            else
             {
-                if (this._freeIndexPool.Count > 0)
-                    e.SetBuffer(this._buffer, this._freeIndexPool.Pop(), this._bufferSize);
-                else
-                {
-                    e.SetBuffer(this._buffer, this._currentIndex, this._bufferSize);
-                    this._currentIndex += this._bufferSize;
-                }
+                e.SetBuffer(this._buffer, this._currentIndex, this._bufferSize);
+                this._currentIndex += this._bufferSize;
             }
         }
 
         public void FreeBuffer(SocketAsyncEventArgs e)
         {
-            lock (this._freeIndexPool)
-            {
-                this._freeIndexPool.Push(e.Offset);
-                e.SetBuffer(this._buffer, 0, 0);
-            }
+            this._freeIndexPool.Push(e.Offset);
+            e.SetBuffer(this._buffer, 0, 0);
         }
     }
 }

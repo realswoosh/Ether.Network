@@ -10,9 +10,7 @@ namespace Ether.Network
     /// </summary>
     public abstract class NetConnection : IDisposable
     {
-        private int _bufferSize;
-        private int _bufferOffset;
-        private SocketAsyncEventArgs _socketAsync;
+        private Action<NetConnection, byte[]> _sendAction;
 
         /// <summary>
         /// Gets the generated unique Id of the connection.
@@ -29,50 +27,14 @@ namespace Ether.Network
         /// </summary>
         protected NetConnection()
         {
+            this.Id = Guid.NewGuid();
         }
         
-        internal void Initialize(Socket socket, SocketAsyncEventArgs e, int bufferSize)
+        internal void Initialize(Socket socket, Action<NetConnection, byte[]> sendAction)
         {
             this.Socket = socket;
-            this._socketAsync = e;
-            this._bufferSize = bufferSize;
-            this._bufferOffset = e.Offset;
-
-            this.StartReceive();
+            this._sendAction = sendAction;
         }
-
-        private void StartReceive()
-        {
-            if (this.Socket.Connected)
-            {
-                if (!this.Socket.ReceiveAsync(this._socketAsync))
-                {
-                    this.ProcessReceive(this._socketAsync);
-                }
-            }
-        }
-
-        private void ProcessReceive(SocketAsyncEventArgs e)
-        {
-            if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
-            {
-                switch (e.LastOperation)
-                {
-                    case SocketAsyncOperation.Receive:
-                        break;
-                    case SocketAsyncOperation.Send:
-                        break;
-                }
-            }
-            else
-            {
-            }
-        }
-
-        /// <summary>
-        /// Send welcome packet to client.
-        /// </summary>
-        public abstract void Greetings();
 
         /// <summary>
         /// Handle packets.
@@ -86,6 +48,7 @@ namespace Ether.Network
         /// <param name="packet"></param>
         public void Send(NetPacketBase packet)
         {
+            this._sendAction?.Invoke(this, packet.Buffer);
         }
 
         /// <summary>

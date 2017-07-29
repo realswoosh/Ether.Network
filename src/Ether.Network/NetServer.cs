@@ -1,4 +1,5 @@
 ﻿using Ether.Network.Exceptions;
+using Ether.Network.Packets;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -18,6 +19,8 @@ namespace Ether.Network
 
         private bool _isRunning;
         private BufferManager _bufferManager;
+        private SocketAsyncEventArgsPool _readPool;
+        private SocketAsyncEventArgsPool _writePool;
 
         protected Socket Socket { get; private set; }
 
@@ -33,7 +36,7 @@ namespace Ether.Network
             this._resetEvent = new ManualResetEvent(false);
             this._isRunning = false;
             this._acceptArgs = new SocketAsyncEventArgs();
-            this._acceptArgs.Completed += this.AcceptCompleted;
+            this._acceptArgs.Completed += this.IO_Completed;
         }
 
         public void Start()
@@ -49,6 +52,21 @@ namespace Ether.Network
                 throw new EtherConfigurationException($"Invalid host : {this.Configuration.Host}");
             
             this._bufferManager = new BufferManager(this.Configuration.MaximumNumberOfConnections, this.Configuration.BufferSize);
+            this._readPool = new SocketAsyncEventArgsPool(this.Configuration.MaximumNumberOfConnections);
+            this._writePool = new SocketAsyncEventArgsPool(this.Configuration.MaximumNumberOfConnections);
+
+            for (int i = 0; i < this.Configuration.MaximumNumberOfConnections; i++)
+            {
+                var readSocketAsync = new SocketAsyncEventArgs();
+                readSocketAsync.Completed += this.IO_Completed;
+                this._bufferManager.SetBuffer(readSocketAsync);
+                this._readPool.Push(readSocketAsync);
+
+                var writeSocketAsync = new SocketAsyncEventArgs();
+                writeSocketAsync.Completed += this.IO_Completed;
+                this._writePool.Push(writeSocketAsync);
+            }
+
             this.Initialize();
             this.Socket.Bind(new IPEndPoint(address, this.Configuration.Port));
             this.Socket.Listen(this.Configuration.Backlog);
@@ -69,9 +87,9 @@ namespace Ether.Network
 
         protected abstract void Initialize();
 
-        protected abstract void OnClientConnected();
+        protected abstract void OnClientConnected(T connection);
 
-        protected abstract void OnClientDisconnected();
+        protected abstract void OnClientDisconnected(T connection);
 
         private void StartAccept()
         {
@@ -85,19 +103,104 @@ namespace Ether.Network
         {
             if (e.SocketError == SocketError.Success)
             {
-                NetConnection client = new T();
-                client.Initialize(e.AcceptSocket, e, this.Configuration.BufferSize);
+                var client = new T();
+                client.Initialize(e.AcceptSocket, this.SendData);
 
-                this._clients.Add(client as T);
-                this.OnClientConnected();
+                this._clients.Add(client);
+                this.OnClientConnected(client);
+                
+                SocketAsyncEventArgs readArgs = this._readPool.Pop();
+                readArgs.UserToken = client;
+
+                if (!e.AcceptSocket.ReceiveAsync(readArgs))
+                    this.ProcessReceive(readArgs);
             }
 
+            e.AcceptSocket = null;
             this.StartAccept();
         }
 
-        private void AcceptCompleted(object sender, SocketAsyncEventArgs e)
+        private void ProcessReceive(SocketAsyncEventArgs e)
         {
-            this.ProcessAccept(e);
+            if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
+            {
+                var netConnection = e.UserToken as NetConnection;
+                var buffer = new byte[e.BytesTransferred];
+
+                Buffer.BlockCopy(e.Buffer, e.Offset, buffer, 0, e.BytesTransferred);
+                IReadOnlyCollection<NetPacketBase> packets = NetPacket.Split(buffer);
+
+                foreach (var packet in packets)
+                    netConnection.HandleMessage(packet);
+
+                if (netConnection.Socket != null && !netConnection.Socket.ReceiveAsync(e))
+                    this.ProcessReceive(e);
+            }
+            else
+            {
+                this.OnClientDisconnected(e.UserToken as T);
+                e.UserToken = null;
+                this._readPool.Push(e);
+            }
+        }
+
+        private void SendData(NetConnection sender, byte[] buffer)
+        {
+            SocketAsyncEventArgs sendArg = this._writePool.Pop();
+            sendArg.UserToken = sender;
+            sendArg.SetBuffer(buffer, 0, buffer.Length);
+
+            if (sender.Socket != null && !sender.Socket.SendAsync(sendArg))
+                this.ProcessSend(sendArg);
+        }
+
+        private void ProcessSend(SocketAsyncEventArgs e)
+        {
+            var netConnection = e.UserToken as NetConnection;
+            bool cleanup = true;
+
+            if (e.SocketError == SocketError.Success)
+            {
+                if (e.BytesTransferred < e.Buffer.Length)
+                {
+                    cleanup = false;
+                    e.SetBuffer(e.BytesTransferred, e.Buffer.Length - e.BytesTransferred);
+                    if (netConnection.Socket != null && !netConnection.Socket.SendAsync(e))
+                        this.ProcessSend(e);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Disconnected ProcessSend()");
+            }
+
+            if (cleanup)
+            {
+                e.UserToken = null;
+                e.SetBuffer(null, 0, 0);
+                this._writePool.Push(e);
+            }
+        }
+
+        private void IO_Completed(object sender, SocketAsyncEventArgs e)
+        {
+            Console.WriteLine("Last operation : {0}", e.LastOperation.ToString());
+
+            switch (e.LastOperation)
+            {
+                case SocketAsyncOperation.Accept:
+                    this.ProcessAccept(e);
+                    break;
+                case SocketAsyncOperation.Receive:
+                    this.ProcessReceive(e);
+                    break;
+                case SocketAsyncOperation.Send:
+                    this.ProcessSend(e);
+                    break;
+
+                default:
+                    Console.WriteLine("IO Unknown command : {0}", e.LastOperation.ToString());break;
+            }
         }
 
         #region IDisposable Support

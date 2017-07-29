@@ -8,6 +8,8 @@ namespace SampleServer
     {
         static void Main(string[] args)
         {
+            Console.Title = "Ether.Network Server";
+
             using (var server = new SampleServer())
                 server.Start();
         }
@@ -25,15 +27,17 @@ namespace SampleServer
 
         protected override void Initialize()
         {
-            Console.WriteLine("Initializing the server.");
+            Console.WriteLine("Server is ready.");
         }
 
-        protected override void OnClientConnected()
+        protected override void OnClientConnected(Client connection)
         {
             Console.WriteLine("New client connected!");
+
+            connection.SendFirstPacket();
         }
 
-        protected override void OnClientDisconnected()
+        protected override void OnClientDisconnected(Client connection)
         {
             Console.WriteLine("Client disconnected!");
         }
@@ -41,11 +45,11 @@ namespace SampleServer
 
     class Client : NetConnection
     {
-        public override void Greetings()
+        public void SendFirstPacket()
         {
             using (var packet = new NetPacket())
             {
-                packet.Write(1);
+                packet.Write("Hello world!");
 
                 this.Send(packet);
             }
@@ -53,6 +57,9 @@ namespace SampleServer
 
         public override void HandleMessage(NetPacketBase packet)
         {
+            string value = packet.Read<string>();
+
+            Console.WriteLine("Received '{1}' from {0}...", this.Id, value);
         }
     }
 }
