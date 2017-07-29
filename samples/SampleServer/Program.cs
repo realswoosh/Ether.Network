@@ -60,6 +60,8 @@ namespace SampleServer
             string value = packet.Read<string>();
 
             Console.WriteLine("Received '{1}' from {0}...", this.Id, value);
+
+            this.SendFirstPacket();
         }
     }
 }

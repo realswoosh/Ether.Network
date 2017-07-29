@@ -52,20 +52,12 @@ namespace Ether.Network
                 throw new EtherConfigurationException($"Invalid host : {this.Configuration.Host}");
             
             this._bufferManager = new BufferManager(this.Configuration.MaximumNumberOfConnections, this.Configuration.BufferSize);
-            this._readPool = new SocketAsyncEventArgsPool(this.Configuration.MaximumNumberOfConnections);
-            this._writePool = new SocketAsyncEventArgsPool(this.Configuration.MaximumNumberOfConnections);
 
-            for (int i = 0; i < this.Configuration.MaximumNumberOfConnections; i++)
-            {
-                var readSocketAsync = new SocketAsyncEventArgs();
-                readSocketAsync.Completed += this.IO_Completed;
-                this._bufferManager.SetBuffer(readSocketAsync);
-                this._readPool.Push(readSocketAsync);
+            if (this._readPool == null)
+                this._readPool = new SocketAsyncEventArgsPool(this.Configuration.MaximumNumberOfConnections);
 
-                var writeSocketAsync = new SocketAsyncEventArgs();
-                writeSocketAsync.Completed += this.IO_Completed;
-                this._writePool.Push(writeSocketAsync);
-            }
+            if (this._writePool == null)
+                this._writePool = new SocketAsyncEventArgsPool(this.Configuration.MaximumNumberOfConnections);
 
             this.Initialize();
             this.Socket.Bind(new IPEndPoint(address, this.Configuration.Port));
@@ -91,6 +83,11 @@ namespace Ether.Network
 
         protected abstract void OnClientDisconnected(T connection);
 
+        protected virtual IReadOnlyCollection<NetPacketBase> SplitPackets(byte[] buffer)
+        {
+            return NetPacket.Split(buffer);
+        }
+
         private void StartAccept()
         {
             if (this._acceptArgs.AcceptSocket != null)
@@ -111,6 +108,8 @@ namespace Ether.Network
                 
                 SocketAsyncEventArgs readArgs = this._readPool.Pop();
                 readArgs.UserToken = client;
+                readArgs.Completed += this.IO_Completed;
+                this._bufferManager.SetBuffer(readArgs);
 
                 if (!e.AcceptSocket.ReceiveAsync(readArgs))
                     this.ProcessReceive(readArgs);
@@ -125,14 +124,8 @@ namespace Ether.Network
             if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
             {
                 var netConnection = e.UserToken as NetConnection;
-                var buffer = new byte[e.BytesTransferred];
 
-                Buffer.BlockCopy(e.Buffer, e.Offset, buffer, 0, e.BytesTransferred);
-                IReadOnlyCollection<NetPacketBase> packets = NetPacket.Split(buffer);
-
-                foreach (var packet in packets)
-                    netConnection.HandleMessage(packet);
-
+                this.DispatchPackets(netConnection, e);
                 if (netConnection.Socket != null && !netConnection.Socket.ReceiveAsync(e))
                     this.ProcessReceive(e);
             }
@@ -140,14 +133,28 @@ namespace Ether.Network
             {
                 this.OnClientDisconnected(e.UserToken as T);
                 e.UserToken = null;
+                e.Completed -= this.IO_Completed;
+                this._bufferManager.FreeBuffer(e);
                 this._readPool.Push(e);
             }
+        }
+
+        private void DispatchPackets(NetConnection netConnection, SocketAsyncEventArgs e)
+        {
+            var buffer = new byte[e.BytesTransferred];
+
+            Buffer.BlockCopy(e.Buffer, e.Offset, buffer, 0, e.BytesTransferred);
+            IReadOnlyCollection<NetPacketBase> packets = this.SplitPackets(buffer);
+
+            foreach (var packet in packets)
+                netConnection.HandleMessage(packet);
         }
 
         private void SendData(NetConnection sender, byte[] buffer)
         {
             SocketAsyncEventArgs sendArg = this._writePool.Pop();
             sendArg.UserToken = sender;
+            sendArg.Completed += this.IO_Completed;
             sendArg.SetBuffer(buffer, 0, buffer.Length);
 
             if (sender.Socket != null && !sender.Socket.SendAsync(sendArg))
@@ -178,13 +185,15 @@ namespace Ether.Network
             {
                 e.UserToken = null;
                 e.SetBuffer(null, 0, 0);
+                e.Completed -= this.IO_Completed;
                 this._writePool.Push(e);
             }
         }
 
         private void IO_Completed(object sender, SocketAsyncEventArgs e)
         {
-            Console.WriteLine("Last operation : {0}", e.LastOperation.ToString());
+            if (sender == null)
+                throw new ArgumentNullException(nameof(sender));
 
             switch (e.LastOperation)
             {
@@ -197,13 +206,11 @@ namespace Ether.Network
                 case SocketAsyncOperation.Send:
                     this.ProcessSend(e);
                     break;
-
-                default:
-                    Console.WriteLine("IO Unknown command : {0}", e.LastOperation.ToString());break;
             }
         }
 
         #region IDisposable Support
+
         private bool _disposed;
 
         protected virtual void Dispose(bool disposing)
@@ -218,6 +225,18 @@ namespace Ether.Network
                     {
                         this.Socket.Dispose();
                         this.Socket = null;
+                    }
+
+                    if (this._readPool != null)
+                    {
+                        this._readPool.Dispose();
+                        this._readPool = null;
+                    }
+
+                    if (this._writePool != null)
+                    {
+                        this._writePool.Dispose();
+                        this._writePool = null;
                     }
                 }
 
@@ -237,6 +256,7 @@ namespace Ether.Network
             this.Dispose(true);
             GC.SuppressFinalize(this);
         }
+
         #endregion
     }
 }

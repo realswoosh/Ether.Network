@@ -66,9 +66,9 @@ namespace Ether.Network.Packets
                         packets.Add(new NetPacket(readerStream.ReadBytes(packetSize)));
                     }
                 }
-                catch
+                catch (Exception e)
                 {
-                    throw new EtherPacketException();
+                    throw new EtherPacketException("An error occured while splitting the incoming packets.", e);
                 }
             }
 

@@ -30,6 +30,11 @@ namespace Ether.Network
             this.Id = Guid.NewGuid();
         }
         
+        /// <summary>
+        /// Initialize this <see cref="NetConnection"/> instance.
+        /// </summary>
+        /// <param name="socket">Socket</param>
+        /// <param name="sendAction">Action to send a buffer through the network.</param>
         internal void Initialize(Socket socket, Action<NetConnection, byte[]> sendAction)
         {
             this.Socket = socket;
@@ -75,7 +80,7 @@ namespace Ether.Network
         /// <summary>
         /// Dispose the NetConnection resources.
         /// </summary>
-        public void Dispose()
+        public virtual void Dispose()
         {
             if (this.Socket == null)
                 return;

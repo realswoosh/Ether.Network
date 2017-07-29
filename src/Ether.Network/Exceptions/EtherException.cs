@@ -1,9 +1,16 @@
-﻿namespace Ether.Network.Exceptions
+﻿using System;
+
+namespace Ether.Network.Exceptions
 {
-    public class EtherException : System.Exception
+    public class EtherException : Exception
     {
         public EtherException(string message)
-            : base(message)
+            : this(message, null)
+        {
+        }
+
+        public EtherException(string message, Exception innerException)
+            : base(message, innerException)
         {
         }
     }

@@ -34,7 +34,7 @@ namespace Ether.Network
 
         private bool _disposedValue;
 
-        void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (!_disposedValue)
             {
@@ -42,6 +42,8 @@ namespace Ether.Network
                 {
                     foreach (SocketAsyncEventArgs e in this._socketPool)
                         e.Dispose();
+
+                    this._socketPool.Clear();
                 }
                 
                 _disposedValue = true;
