@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Simple and fast network library</Description>
+    <Description>Simple and fast network library.</Description>
     <Copyright>Filipe GOMES PEIXOTO © 2016</Copyright>
     <AssemblyTitle>Ether.Network</AssemblyTitle>
     <VersionPrefix>1.2.0</VersionPrefix>

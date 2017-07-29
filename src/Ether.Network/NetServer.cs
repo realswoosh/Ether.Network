@@ -248,8 +248,6 @@ namespace Ether.Network
                 case SocketAsyncOperation.Send:
                     this.ProcessSend(e);
                     break;
-                default:
-                    break;
             }
         }
 
