@@ -11,12 +11,15 @@
 
 ### Changed
 
-- NetServer socket management. Now using [SocketAsyncEventArgs](https://msdn.microsoft.com/en-us/library/system.net.sockets.socketasynceventargs(v=vs.110).aspx) for scalability.
+- NetServer socket management. Now using [SocketAsyncEventArgs](https://msdn.microsoft.com/en-us/library/system.net.sockets.socketasynceventargs(v=vs.110).aspx) for scalability and performance.
+- NetClient socket management. Now using [SocketAsyncEventArgs](https://msdn.microsoft.com/en-us/library/system.net.sockets.socketasynceventargs(v=vs.110).aspx) for scalability and performance.
 
 ### Removed
 
 - Remove .NET Framework 4.6 support
 - Remove .NET Framework 4.6.1 support
+- Remove NetDelayer system
+
 
 ## [Released]
 

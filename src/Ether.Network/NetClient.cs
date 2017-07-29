@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using Ether.Network.Packets;
 using System.Net.Sockets;
 using System.Net;
@@ -9,8 +8,12 @@ using Ether.Network.Exceptions;
 
 namespace Ether.Network
 {
-    public abstract class NetClient : NetConnection
+    /// <summary>
+    /// Managed TCP client.
+    /// </summary>
+    public abstract class NetClient : INetClient
     {
+        private readonly Guid _id;
         private readonly string _host;
         private readonly int _port;
         private readonly int _bufferSize;
@@ -18,12 +21,30 @@ namespace Ether.Network
         private readonly SocketAsyncEventArgs _socketReceiveArgs;
         private readonly SocketAsyncEventArgs _socketSendArgs;
 
-        private bool _isRunning;
+        /// <summary>
+        /// Gets the <see cref="NetClient"/> unique Id.
+        /// </summary>
+        public Guid Id => this._id;
 
-        public bool IsRunning => this._isRunning;
+        /// <summary>
+        /// Gets the <see cref="NetClient"/> socket.
+        /// </summary>
+        protected Socket Socket { get; private set; }
 
+        /// <summary>
+        /// Gets the <see cref="NetClient"/> connected state.
+        /// </summary>
+        public bool IsConnected => this.Socket != null && this.Socket.Connected;
+
+        /// <summary>
+        /// Creates a new <see cref="NetClient"/> instance.
+        /// </summary>
+        /// <param name="host">Remote host or ip</param>
+        /// <param name="port">Remote port</param>
+        /// <param name="bufferSize">Buffer size</param>
         public NetClient(string host, int port, int bufferSize)
         {
+            this._id = Guid.NewGuid();
             this._host = host;
             this._port = port;
             this._bufferSize = bufferSize;
@@ -34,33 +55,83 @@ namespace Ether.Network
             this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         }
 
+        /// <summary>
+        /// Connect to the remote host.
+        /// </summary>
         public void Connect()
         {
-            if (this._isRunning)
-                throw new InvalidOperationException("Client is already running");
+            if (this.IsConnected)
+                throw new InvalidOperationException("Client is already connected to remote.");
 
             IPAddress address = NetUtils.GetIpAddress(this._host);
 
             if (address == null)
                 throw new EtherConfigurationException($"Invalid host or ip address: {this._host}.");
+            if (this._port <= 0)
+                throw new EtherConfigurationException($"Invalid port: {this._port}");
 
             this.StartConnect(address, this._port);
         }
 
+        /// <summary>
+        /// Disconnects the <see cref="NetClient"/>?
+        /// </summary>
         public void Disconnect()
         {
-            throw new NotImplementedException();
+            if (this.IsConnected)
+            {
+                this.Socket.Shutdown(SocketShutdown.Both);
+            }
         }
 
+        /// <summary>
+        /// Sends a packet through the network.
+        /// </summary>
+        /// <param name="packet"></param>
         public void Send(NetPacketBase packet)
         {
-            throw new NotImplementedException();
+            if (!this.IsConnected)
+                throw new SocketException();
+
+            byte[] buffer = packet.Buffer;
+
+            if (buffer.Length <= 0)
+                return;
+
+            this._socketSendArgs.SetBuffer(buffer, 0, buffer.Length);
+
+            if (this.Socket != null)
+                this.Socket.SendAsync(this._socketSendArgs);
         }
 
+        /// <summary>
+        /// Triggered when the <see cref="NetClient"/> receives a packet.
+        /// </summary>
+        /// <param name="packet"></param>
+        protected abstract void HandleMessage(NetPacketBase packet);
+
+        /// <summary>
+        /// Triggered when the client is connected to the remote end point.
+        /// </summary>
         protected abstract void OnConnected();
 
+        /// <summary>
+        /// Triggered when the client is disconnected from the remote end point.
+        /// </summary>
         protected abstract void OnDisconnected();
 
+        /// <summary>
+        /// Split an incoming buffer from the network in a collection of <see cref="NetPacketBase"/>.
+        /// </summary>
+        /// <param name="buffer">Incoming data</param>
+        /// <returns></returns>
+        protected virtual IReadOnlyCollection<NetPacketBase> SplitPackets(byte[] buffer) => NetPacket.Split(buffer);
+
+        /// <summary>
+        /// Starts the connect async operation.
+        /// </summary>
+        /// <param name="address">Remote address</param>
+        /// <param name="port">Remote port</param>
         private void StartConnect(IPAddress address, int port)
         {
             this._socketConnectArgs.RemoteEndPoint = new IPEndPoint(address, this._port);
@@ -69,6 +140,10 @@ namespace Ether.Network
                 this.ProcessConnect(this._socketConnectArgs);
         }
 
+        /// <summary>
+        /// Process the connect async operation.
+        /// </summary>
+        /// <param name="e"></param>
         private void ProcessConnect(SocketAsyncEventArgs e)
         {
             if (e.SocketError == SocketError.Success)
@@ -78,26 +153,41 @@ namespace Ether.Network
             }
         }
 
+        /// <summary>
+        /// Starts the receive async operation.
+        /// </summary>
+        /// <param name="e"></param>
         private void StartReceive(SocketAsyncEventArgs e)
         {
-            throw new NotImplementedException();
+            if (this.Socket != null && !this.Socket.ReceiveAsync(e))
+                this.ProcessReceive(e);
         }
 
+        /// <summary>
+        /// Process the receive async operation.
+        /// </summary>
+        /// <param name="e"></param>
         private void ProcessReceive(SocketAsyncEventArgs e)
         {
-            throw new NotImplementedException();
+            if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
+            {
+                var buffer = new byte[e.BytesTransferred];
+
+                Buffer.BlockCopy(e.Buffer, e.Offset, buffer, 0, e.BytesTransferred);
+                IReadOnlyCollection<NetPacketBase> packets = this.SplitPackets(buffer);
+
+                foreach (var packet in packets)
+                    this.HandleMessage(packet);
+            }
+
+            this.StartReceive(e);
         }
 
-        private void StartSend(SocketAsyncEventArgs e)
-        {
-            throw new NotImplementedException();
-        }
-
-        private void ProcessSend(SocketAsyncEventArgs e)
-        {
-            throw new NotImplementedException();
-        }
-
+        /// <summary>
+        /// Triggered when a <see cref="SocketAsyncEventArgs"/> async operation is completed.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void IO_Completed(object sender, SocketAsyncEventArgs e)
         {
             if (sender == null)
@@ -111,12 +201,13 @@ namespace Ether.Network
                 case SocketAsyncOperation.Receive:
                     this.ProcessReceive(e);
                     break;
-                case SocketAsyncOperation.Send:
-                    this.ProcessSend(e);
-                    break;
             }
         }
 
+        /// <summary>
+        /// Creates a <see cref="SocketAsyncEventArgs"/>.
+        /// </summary>
+        /// <returns></returns>
         private SocketAsyncEventArgs CreateSocketAsync()
         {
             var socketAsync = new SocketAsyncEventArgs()
@@ -126,10 +217,6 @@ namespace Ether.Network
             socketAsync.Completed += this.IO_Completed;
 
             return socketAsync;
-        }
-
-        public override void HandleMessage(NetPacketBase packet)
-        {
         }
     }
 }

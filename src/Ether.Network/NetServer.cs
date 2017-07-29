@@ -11,7 +11,7 @@ using System.Threading;
 namespace Ether.Network
 {
     /// <summary>
-    /// Fully managed TCP socket server.
+    /// Managed TCP socket server.
     /// </summary>
     /// <typeparam name="T"></typeparam>
     public abstract class NetServer<T> : INetServer, IDisposable where T : NetConnection, new()
@@ -130,6 +130,9 @@ namespace Ether.Network
             return NetPacket.Split(buffer);
         }
 
+        /// <summary>
+        /// Starts the accept connection async operation.
+        /// </summary>
         private void StartAccept()
         {
             if (this._acceptArgs.AcceptSocket != null)
@@ -138,6 +141,10 @@ namespace Ether.Network
                 this.ProcessAccept(this._acceptArgs);
         }
 
+        /// <summary>
+        /// Process the accept connection async operation.
+        /// </summary>
+        /// <param name="e"></param>
         private void ProcessAccept(SocketAsyncEventArgs e)
         {
             if (e.SocketError == SocketError.Success)
@@ -161,6 +168,10 @@ namespace Ether.Network
             this.StartAccept();
         }
 
+        /// <summary>
+        /// Process the receive async operation on one <see cref="SocketAsyncEventArgs"/>.
+        /// </summary>
+        /// <param name="e"></param>
         private void ProcessReceive(SocketAsyncEventArgs e)
         {
             if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
@@ -181,6 +192,11 @@ namespace Ether.Network
             }
         }
 
+        /// <summary>
+        /// Split and dispatch incoming packets to the <see cref="NetConnection"/>.
+        /// </summary>
+        /// <param name="netConnection"></param>
+        /// <param name="e"></param>
         private void DispatchPackets(NetConnection netConnection, SocketAsyncEventArgs e)
         {
             var buffer = new byte[e.BytesTransferred];
@@ -192,6 +208,11 @@ namespace Ether.Network
                 netConnection.HandleMessage(packet);
         }
 
+        /// <summary>
+        /// Send data to a <see cref="NetConnection"/>.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="buffer"></param>
         private void SendData(NetConnection sender, byte[] buffer)
         {
             SocketAsyncEventArgs sendArg = this._writePool.Pop();
@@ -203,6 +224,10 @@ namespace Ether.Network
                 this.ProcessSend(sendArg);
         }
 
+        /// <summary>
+        /// Process the send async operation.
+        /// </summary>
+        /// <param name="e"></param>
         private void ProcessSend(SocketAsyncEventArgs e)
         {
             var netConnection = e.UserToken as NetConnection;
@@ -232,6 +257,11 @@ namespace Ether.Network
             }
         }
 
+        /// <summary>
+        /// Triggered when a <see cref="SocketAsyncEventArgs"/> async operation is completed.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void IO_Completed(object sender, SocketAsyncEventArgs e)
         {
             if (sender == null)

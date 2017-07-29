@@ -10,7 +10,10 @@ namespace Ether.Network
     /// </summary>
     public abstract class NetConnection : IDisposable
     {
-        private Action<NetConnection, byte[]> _sendAction;
+        /// <summary>
+        /// Gets or sets the SendAction.
+        /// </summary>
+        protected Action<NetConnection, byte[]> SendAction { get; set; }
 
         /// <summary>
         /// Gets the generated unique Id of the connection.
@@ -38,7 +41,7 @@ namespace Ether.Network
         internal void Initialize(Socket socket, Action<NetConnection, byte[]> sendAction)
         {
             this.Socket = socket;
-            this._sendAction = sendAction;
+            this.SendAction = sendAction;
         }
 
         /// <summary>
@@ -53,7 +56,7 @@ namespace Ether.Network
         /// <param name="packet"></param>
         public void Send(NetPacketBase packet)
         {
-            this._sendAction?.Invoke(this, packet.Buffer);
+            this.SendAction?.Invoke(this, packet.Buffer);
         }
 
         /// <summary>

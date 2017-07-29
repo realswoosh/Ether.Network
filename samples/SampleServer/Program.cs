@@ -59,9 +59,13 @@ namespace SampleServer
         {
             string value = packet.Read<string>();
 
-            Console.WriteLine("Received '{1}' from {0}...", this.Id, value);
+            Console.WriteLine("Received '{1}' from {0}", this.Id, value);
 
-            this.SendFirstPacket();
+            using (var p = new NetPacket())
+            {
+                p.Write(string.Format("OK: '{0}'", value));
+                this.Send(p);
+            }
         }
     }
 }
