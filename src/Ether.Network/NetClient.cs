@@ -16,7 +16,6 @@ namespace Ether.Network
         private readonly Guid _id;
         private readonly string _host;
         private readonly int _port;
-        private readonly int _bufferSize;
         private readonly SocketAsyncEventArgs _socketConnectArgs;
         private readonly SocketAsyncEventArgs _socketReceiveArgs;
         private readonly SocketAsyncEventArgs _socketSendArgs;
@@ -42,12 +41,11 @@ namespace Ether.Network
         /// <param name="host">Remote host or ip</param>
         /// <param name="port">Remote port</param>
         /// <param name="bufferSize">Buffer size</param>
-        public NetClient(string host, int port, int bufferSize)
+        protected NetClient(string host, int port, int bufferSize)
         {
             this._id = Guid.NewGuid();
             this._host = host;
             this._port = port;
-            this._bufferSize = bufferSize;
             this._socketConnectArgs = this.CreateSocketAsync();
             this._socketSendArgs = this.CreateSocketAsync();
             this._socketReceiveArgs = this.CreateSocketAsync();
@@ -192,16 +190,10 @@ namespace Ether.Network
         {
             if (sender == null)
                 throw new ArgumentNullException(nameof(sender));
-
-            switch (e.LastOperation)
-            {
-                case SocketAsyncOperation.Connect:
-                    this.ProcessConnect(e);
-                    break;
-                case SocketAsyncOperation.Receive:
-                    this.ProcessReceive(e);
-                    break;
-            }
+            if (e.LastOperation == SocketAsyncOperation.Connect)
+                this.ProcessConnect(e);
+            if (e.LastOperation == SocketAsyncOperation.Receive)
+                this.ProcessReceive(e);
         }
 
         /// <summary>
@@ -210,10 +202,8 @@ namespace Ether.Network
         /// <returns></returns>
         private SocketAsyncEventArgs CreateSocketAsync()
         {
-            var socketAsync = new SocketAsyncEventArgs()
-            {
-                UserToken = this.Socket
-            };
+            var socketAsync = new SocketAsyncEventArgs();
+            socketAsync.UserToken = this.Socket;
             socketAsync.Completed += this.IO_Completed;
 
             return socketAsync;

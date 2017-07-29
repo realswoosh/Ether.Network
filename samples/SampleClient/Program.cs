@@ -1,5 +1,4 @@
-﻿using Ether.Network;
-using System;
+﻿using System;
 using Ether.Network.Packets;
 
 namespace SampleClient
@@ -32,31 +31,6 @@ namespace SampleClient
 
             Console.WriteLine("Disconnected. Press any key to continue...");
             Console.ReadLine();
-        }
-    }
-
-    class MyClient : NetClient
-    {
-        public MyClient(string host, int port, int bufferSize) 
-            : base(host, port, bufferSize)
-        {
-        }
-
-        protected override void HandleMessage(NetPacketBase packet)
-        {
-            var response = packet.Read<string>();
-
-            Console.WriteLine("-> Server response: {0}", response);
-        }
-
-        protected override void OnConnected()
-        {
-            Console.WriteLine("Connected to {0}", this.Socket.RemoteEndPoint.ToString());
-        }
-
-        protected override void OnDisconnected()
-        {
-            Console.WriteLine("Disconnected");
         }
     }
 }
