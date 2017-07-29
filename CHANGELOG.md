@@ -7,6 +7,7 @@
 ### Added
 
 - Add netstandard1.3 support
+- Add NetServerConfiguration class. Provide properties to configuration a NetServer.
 
 ### Changed
 
