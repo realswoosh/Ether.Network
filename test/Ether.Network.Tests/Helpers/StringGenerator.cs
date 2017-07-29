@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace Ether.Network.Helpers
+namespace Ether.Network.Tests.Helpers
 {
     public static partial class Helper
     {

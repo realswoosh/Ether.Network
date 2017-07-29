@@ -1,4 +1,4 @@
-# Ether.Network 
+# ![logo](https://raw.githubusercontent.com/Eastrall/Ether.Network/V2/banner.png)
 
 [![Build Status](https://travis-ci.org/Eastrall/Ether.Network.svg?branch=develop)](https://travis-ci.org/Eastrall/Ether.Network)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/e84d77087d6940f79061799383cc1432)](https://www.codacy.com/app/Eastrall/Ether.Network?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Eastrall/Ether.Network&amp;utm_campaign=Badge_Grade)
@@ -6,33 +6,13 @@
 
 Ether.Network is a basic library to make quickly a simple server or client using sockets.
 
-This library is coded in C# using .NET Core framework to target Windows and Linux operating systems.
-
-For now we use the basic synchronous sockets, and in the future we'll add the support of asynchronous sockets to increase performances and stability.
+This library is coded with C# using .NET Core framework to target Windows and Linux operating systems.
 
 ## Framework support
 
-- .NET Core 1.0
-- .NET Framework 4.6.1
-- .NET Framework 4.6
+- .NET Core 1.0 (netstandard1.3)
 - .NET Framework 4.5.1
 - .NET Framework 4.5
-
-## Features
-
-### Version 1.1.0
-
-- [NetPacket][netpacket] : Packet abstraction. You can now create our own packet implementation.
-- [NetDelayer][netdelayer] : Call actions every X milliseconds.
-- [NetServer][netserver]: NetServer abstraction.
-	- Custom treatments on your incoming data by overriding the `NetServer.SplitPackets` method.
-	- OnClientConnected/Disconnected virtual methods. Can be overrided.
-
-### Version 1.0.0
-
-- [NetServer][netserver]: Socket server implementation handling multiple [Clients][netconnection]
-- [NetClient][netclient]: Socket client implementation
-- [NetPacket][netpacket]: Read/Write packet implementation.
 
 ## How to install
 
@@ -166,7 +146,6 @@ public class MyClient : NetClient
 }
 ```
 
-[netdelayer]: src/Ether.Network/NetDelayer.cs
 [netserver]: src/Ether.Network/NetServer.cs
 [netclient]: src/Ether.Network/NetClient.cs
 [netpacket]: src/Ether.Network/Packets/NetPacket.cs

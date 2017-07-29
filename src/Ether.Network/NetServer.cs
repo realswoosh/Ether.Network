@@ -1,7 +1,9 @@
-﻿using Ether.Network.Packets;
+﻿using Ether.Network.Exceptions;
+using Ether.Network.Packets;
+using Ether.Network.Utils;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -9,91 +11,84 @@ using System.Threading;
 namespace Ether.Network
 {
     /// <summary>
-    /// NetServer implemntation.
+    /// Managed TCP socket server.
     /// </summary>
-    /// <typeparam name="T">Client type</typeparam>
-    public abstract class NetServer<T> : IDisposable where T : NetConnection, new()
+    /// <typeparam name="T"></typeparam>
+    public abstract class NetServer<T> : INetServer, IDisposable where T : NetConnection, new()
     {
-        private static object syncClients = new object();
+        private readonly ConcurrentBag<T> _clients;
+        private readonly ManualResetEvent _resetEvent;
+        private readonly SocketAsyncEventArgs _acceptArgs;
+
+        private bool _isRunning;
+        private BufferManager _bufferManager;
+        private SocketAsyncEventArgsPool _readPool;
+        private SocketAsyncEventArgsPool _writePool;
+
+        /// <summary>
+        /// Gets the <see cref="NetServer{T}"/> listening socket.
+        /// </summary>
+        protected Socket Socket { get; private set; }
+
+        /// <summary>
+        /// Gets the <see cref="NetServer{T}"/> configuration
+        /// </summary>
+        protected NetServerConfiguration Configuration { get; private set; }
+
+        /// <summary>
+        /// Gets the <see cref="NetServer{T}"/> running state.
+        /// </summary>
+        public bool IsRunning => this._isRunning;
         
-        private Socket listenSocket;
-        private Thread listenThread;
-        private Thread handlerThread;
-        private List<T> clients;
-        
         /// <summary>
-        /// Gets the NetServer clients list.
+        /// Gets the connected client.
         /// </summary>
-        public IReadOnlyCollection<T> Clients
+        public IReadOnlyCollection<T> Clients => this._clients as IReadOnlyCollection<T>;
+
+        /// <summary>
+        /// Creates a new <see cref="NetServer{T}"/> instance.
+        /// </summary>
+        protected NetServer()
         {
-            get { return this.clients; }
+            this.Configuration = new NetServerConfiguration(this);
+            this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            this._clients = new ConcurrentBag<T>();
+            this._resetEvent = new ManualResetEvent(false);
+            this._isRunning = false;
+            this._acceptArgs = new SocketAsyncEventArgs();
+            this._acceptArgs.Completed += this.IO_Completed;
         }
 
         /// <summary>
-        /// Gets the NetServer configuration.
+        /// Initialize and start the server.
         /// </summary>
-        public NetConfiguration ServerConfiguration { get; protected set; }
-
-        /// <summary>
-        /// Gets the value if the server is running.
-        /// </summary>
-        public bool IsRunning { get; private set; }
-    
-        /// <summary>
-        /// Creates a new NetServer instance.
-        /// </summary>
-        public NetServer()
-            : base()
+        public void Start()
         {
-            this.IsRunning = false;
-            this.clients = new List<T>();
+            if (this._isRunning)
+                throw new InvalidOperationException("Server is already running.");
+            
+            if (this.Configuration.Port <= 0)
+                throw new EtherConfigurationException($"{this.Configuration.Port} is not a valid port.");
 
-            this.ServerConfiguration = new NetConfiguration()
-            {
-                Ip = "127.0.0.1",
-                Port = 5000
-            };
-        }
+            var address = this.Configuration.Address;
+            if (address == null)
+                throw new EtherConfigurationException($"Invalid host : {this.Configuration.Host}");
+            
+            this._bufferManager = new BufferManager(this.Configuration.MaximumNumberOfConnections, this.Configuration.BufferSize);
 
-        /// <summary>
-        /// Destroy the server.
-        /// </summary>
-        ~NetServer()
-        {
-            this.Dispose(false);
-        }
+            if (this._readPool == null)
+                this._readPool = new SocketAsyncEventArgsPool(this.Configuration.MaximumNumberOfConnections);
 
-        /// <summary>
-        /// Start the server.
-        /// </summary>
-        /// <param name="configuration">NetServer configuration</param>
-        public void Start(NetConfiguration configuration = null)
-        {
-            if (this.IsRunning == false)
-            {
-                this.IsRunning = true;
+            if (this._writePool == null)
+                this._writePool = new SocketAsyncEventArgsPool(this.Configuration.MaximumNumberOfConnections);
 
-                if (configuration != null)
-                    this.ServerConfiguration = configuration;
+            this.Initialize();
+            this.Socket.Bind(new IPEndPoint(address, this.Configuration.Port));
+            this.Socket.Listen(this.Configuration.Backlog);
+            this.StartAccept();
 
-                this.Initialize();
-
-                this.listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                this.listenSocket.Bind(new IPEndPoint(this.ServerConfiguration.IpAddress, this.ServerConfiguration.Port));
-                this.listenSocket.Listen(100);
-
-                this.listenThread = new Thread(this.ListenSocket);
-                this.listenThread.Start();
-
-                this.handlerThread = new Thread(this.HandleClients);
-                this.handlerThread.Start();
-
-                NetDelayer.Start();
-
-                this.Idle();
-            }
-            else
-                throw new InvalidOperationException("NetServer is already running.");
+            this._isRunning = true;
+            this._resetEvent.WaitOne();
         }
 
         /// <summary>
@@ -101,192 +96,251 @@ namespace Ether.Network
         /// </summary>
         public void Stop()
         {
-            if (!this.IsRunning)
-                return;
-
-            this.IsRunning = false;
-            NetDelayer.Stop();
-            this.Dispose();
-        }
-
-        /// <summary>
-        /// Listen new clients on the socket.
-        /// </summary>
-        private void ListenSocket()
-        {
-            while (this.IsRunning)
+            if (this._isRunning)
             {
-                if (this.listenSocket.Poll(10, SelectMode.SelectRead))
-                {
-                    var client = Activator.CreateInstance(typeof(T), this.listenSocket.Accept()) as T;
-                    
-                    lock (syncClients)
-                        this.clients.Add(client);
-
-                    this.OnClientConnected(client);
-                }
-
-                Thread.Sleep(100);
+                this._isRunning = false;
+                this._resetEvent.Set();
             }
         }
 
         /// <summary>
-        /// Handle connected clients.
+        /// Initialize the server resourrces.
         /// </summary>
-        private void HandleClients()
-        {
-            var clientsReady = new Queue<NetConnection>();
-
-            try
-            {
-                while (this.IsRunning)
-                {
-                    lock (syncClients)
-                    {
-                        foreach (var client in this.clients)
-                        {
-                            if (client.Socket.Poll(10, SelectMode.SelectRead))
-                                clientsReady.Enqueue(client);
-                        }
-                    }
-
-                    while (clientsReady.Any())
-                    {
-                        var client = clientsReady.Dequeue();
-
-                        try
-                        {
-                            var buffer = new byte[client.Socket.Available];
-                            var recievedDataSize = client.Socket.Receive(buffer);
-
-                            if (recievedDataSize < 1)
-                            {
-                                this.RemoveClient(client);
-                                continue;
-                            }
-
-                            var recievedPackets = this.SplitPackets(buffer);
-
-                            foreach (var packet in recievedPackets)
-                            {
-                                client.HandleMessage(packet);
-                                packet.Dispose();
-                            }
-                        }
-                        catch (Exception e)
-                        {
-#if DEBUG
-                            Console.WriteLine($"Error: {Environment.NewLine}{e.Message}{Environment.NewLine}{e.StackTrace}");
-#endif
-                            if (client.Socket.Connected == false)
-                                this.RemoveClient(client);
-
-                            continue;
-                        }
-                    }
-
-                    Thread.Sleep(50);
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Unexpected error: {e.Message}. StackTrace:{Environment.NewLine}{e.StackTrace}");
-            }
-        }
+        protected abstract void Initialize();
 
         /// <summary>
-        /// Removes a client from the server.
+        /// Triggered when a new client is connected to the server.
         /// </summary>
-        /// <param name="client">Client to remove</param>
-        public void RemoveClient(NetConnection client)
-        {
-            lock (syncClients)
-            {
-                var clientToRemove = this.clients.Find(item => item != null && item.Id == client.Id);
-
-                if (clientToRemove == null)
-                    Console.WriteLine("Cannot remove client. Unknow client {0}", client.Id);
-
-                this.clients.Remove(clientToRemove);
-                clientToRemove.Dispose();
-                this.OnClientDisconnected(clientToRemove);
-            }
-        }
+        /// <param name="connection"></param>
+        protected abstract void OnClientConnected(T connection);
 
         /// <summary>
-        /// Split a buffer into packets.
+        /// Triggered when a client disconnects from the server.
         /// </summary>
-        /// <param name="buffer">Incoming buffer</param>
-        /// <returns></returns>
+        /// <param name="connection"></param>
+        protected abstract void OnClientDisconnected(T connection);
+
+        /// <summary>
+        /// Split an incoming network buffer.
+        /// </summary>
+        /// <param name="buffer">Incoming data buffer</param>
+        /// <returns>Readonly collection of <see cref="NetPacketBase"/></returns>
         protected virtual IReadOnlyCollection<NetPacketBase> SplitPackets(byte[] buffer)
         {
             return NetPacket.Split(buffer);
         }
 
         /// <summary>
-        /// Initialize server internal resources.
+        /// Starts the accept connection async operation.
         /// </summary>
-        protected abstract void Initialize();
-
-        /// <summary>
-        /// Waits for user input.
-        /// </summary>
-        protected abstract void Idle();
-
-        /// <summary>
-        /// On client connected.
-        /// </summary>
-        /// <param name="client">Connected client</param>
-        protected abstract void OnClientConnected(T client);
-
-        /// <summary>
-        /// On client disconnected.
-        /// </summary>
-        /// <param name="client">Disconnected client</param>
-        protected abstract void OnClientDisconnected(T client);
-
-        #region IDisposable Support
-        private bool disposedValue;
-
-        /// <summary>
-        /// Dispose the resources.
-        /// </summary>
-        /// <param name="disposing">Dispose or not the managed resources</param>
-        protected virtual void Dispose(bool disposing)
+        private void StartAccept()
         {
-            if (disposedValue) return;
-            if (disposing)
-            {
-                this.listenThread.Join();
-                this.handlerThread.Join();
-
-                this.listenThread = null;
-                this.handlerThread = null;
-                
-                this.listenSocket.Dispose();
-
-                foreach (var client in this.clients)
-                    client.Dispose();
-
-                this.clients.Clear();
-            }
-
-            disposedValue = true;
+            if (this._acceptArgs.AcceptSocket != null)
+                this._acceptArgs.AcceptSocket = null;
+            if (!this.Socket.AcceptAsync(this._acceptArgs))
+                this.ProcessAccept(this._acceptArgs);
         }
 
         /// <summary>
-        /// Dispose the server resources.
+        /// Process the accept connection async operation.
+        /// </summary>
+        /// <param name="e"></param>
+        private void ProcessAccept(SocketAsyncEventArgs e)
+        {
+            if (e.SocketError == SocketError.Success)
+            {
+                var client = new T();
+                client.Initialize(e.AcceptSocket, this.SendData);
+
+                this._clients.Add(client);
+                this.OnClientConnected(client);
+                
+                SocketAsyncEventArgs readArgs = this._readPool.Pop();
+                readArgs.UserToken = client;
+                readArgs.Completed += this.IO_Completed;
+                this._bufferManager.SetBuffer(readArgs);
+
+                if (e.AcceptSocket != null && !e.AcceptSocket.ReceiveAsync(readArgs))
+                    this.ProcessReceive(readArgs);
+            }
+
+            e.AcceptSocket = null;
+            this.StartAccept();
+        }
+
+        /// <summary>
+        /// Process the receive async operation on one <see cref="SocketAsyncEventArgs"/>.
+        /// </summary>
+        /// <param name="e"></param>
+        private void ProcessReceive(SocketAsyncEventArgs e)
+        {
+            if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
+            {
+                var netConnection = e.UserToken as NetConnection;
+
+                this.DispatchPackets(netConnection, e);
+                if (netConnection.Socket != null && !netConnection.Socket.ReceiveAsync(e))
+                    this.ProcessReceive(e);
+            }
+            else
+            {
+                this.OnClientDisconnected(e.UserToken as T);
+                e.UserToken = null;
+                e.Completed -= this.IO_Completed;
+                this._bufferManager.FreeBuffer(e);
+                this._readPool.Push(e);
+            }
+        }
+
+        /// <summary>
+        /// Split and dispatch incoming packets to the <see cref="NetConnection"/>.
+        /// </summary>
+        /// <param name="netConnection"></param>
+        /// <param name="e"></param>
+        private void DispatchPackets(NetConnection netConnection, SocketAsyncEventArgs e)
+        {
+            var buffer = new byte[e.BytesTransferred];
+
+            Buffer.BlockCopy(e.Buffer, e.Offset, buffer, 0, e.BytesTransferred);
+            IReadOnlyCollection<NetPacketBase> packets = this.SplitPackets(buffer);
+
+            foreach (var packet in packets)
+                netConnection.HandleMessage(packet);
+        }
+
+        /// <summary>
+        /// Send data to a <see cref="NetConnection"/>.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="buffer"></param>
+        private void SendData(NetConnection sender, byte[] buffer)
+        {
+            SocketAsyncEventArgs sendArg = this._writePool.Pop();
+            sendArg.UserToken = sender;
+            sendArg.Completed += this.IO_Completed;
+            sendArg.SetBuffer(buffer, 0, buffer.Length);
+
+            if (sender.Socket != null && !sender.Socket.SendAsync(sendArg))
+                this.ProcessSend(sendArg);
+        }
+
+        /// <summary>
+        /// Process the send async operation.
+        /// </summary>
+        /// <param name="e"></param>
+        private void ProcessSend(SocketAsyncEventArgs e)
+        {
+            var netConnection = e.UserToken as NetConnection;
+            bool resetBuffer = true;
+
+            if (e.SocketError == SocketError.Success)
+            {
+                if (e.BytesTransferred < e.Buffer.Length)
+                {
+                    resetBuffer = false;
+                    e.SetBuffer(e.BytesTransferred, e.Buffer.Length - e.BytesTransferred);
+                    if (netConnection.Socket != null && !netConnection.Socket.SendAsync(e))
+                        this.ProcessSend(e);
+                }
+            }
+            else
+            {
+                this.OnClientDisconnected(netConnection as T);
+            }
+
+            if (resetBuffer)
+            {
+                e.UserToken = null;
+                e.SetBuffer(null, 0, 0);
+                e.Completed -= this.IO_Completed;
+                this._writePool.Push(e);
+            }
+        }
+
+        /// <summary>
+        /// Triggered when a <see cref="SocketAsyncEventArgs"/> async operation is completed.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void IO_Completed(object sender, SocketAsyncEventArgs e)
+        {
+            if (sender == null)
+                throw new ArgumentNullException(nameof(sender));
+
+            switch (e.LastOperation)
+            {
+                case SocketAsyncOperation.Accept:
+                    this.ProcessAccept(e);
+                    break;
+                case SocketAsyncOperation.Receive:
+                    this.ProcessReceive(e);
+                    break;
+                case SocketAsyncOperation.Send:
+                    this.ProcessSend(e);
+                    break;
+                case SocketAsyncOperation.Disconnect: break;
+                default:
+                    throw new InvalidOperationException("Unexpected SocketAsyncOperation.");
+            }
+        }
+
+        #region IDisposable Support
+
+        private bool _disposed;
+
+        /// <summary>
+        /// Dispose the <see cref="NetServer{T}"/> resources.
+        /// </summary>
+        /// <param name="disposing"></param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    this.Stop();
+
+                    if (this.Socket != null)
+                    {
+                        this.Socket.Dispose();
+                        this.Socket = null;
+                    }
+
+                    if (this._readPool != null)
+                    {
+                        this._readPool.Dispose();
+                        this._readPool = null;
+                    }
+
+                    if (this._writePool != null)
+                    {
+                        this._writePool.Dispose();
+                        this._writePool = null;
+                    }
+                }
+
+                _disposed = true;
+            }
+            else
+                throw new ObjectDisposedException(nameof(NetServer<T>));
+        }
+        
+        /// <summary>
+        /// Destroys the <see cref="NetServer{T}"/> instance.
+        /// </summary>
+        ~NetServer()
+        {
+            this.Dispose(false);
+        }
+
+        /// <summary>
+        /// Dispose the <see cref="NetServer{T}"/> resources.
         /// </summary>
         public void Dispose()
         {
             this.Dispose(true);
             GC.SuppressFinalize(this);
         }
-
-        /// <summary>
-        /// Dispose the children resources.
-        /// </summary>
-        public abstract void DisposeServer();
 
         #endregion
     }

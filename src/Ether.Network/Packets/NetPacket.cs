@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Ether.Network.Exceptions;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -16,9 +17,9 @@ namespace Ether.Network.Packets
         {
             get
             {
-                this.memoryWriter.Seek(0, SeekOrigin.Begin);
+                this.MemoryWriter.Seek(0, SeekOrigin.Begin);
                 this.Write(this.Size);
-                this.memoryWriter.Seek(this.Size, SeekOrigin.Begin);
+                this.MemoryWriter.Seek(this.Size, SeekOrigin.Begin);
 
                 return this.GetBuffer();
             }
@@ -28,7 +29,6 @@ namespace Ether.Network.Packets
         /// Creates a new NetPacket in write-only mode.
         /// </summary>
         public NetPacket()
-            : base()
         {
             this.Write(0); // Packet size
         }
@@ -68,7 +68,7 @@ namespace Ether.Network.Packets
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine("An error occured during the packet spliting. {0}", e.Message);
+                    throw new EtherPacketException("An error occured while splitting the incoming packets.", e);
                 }
             }
 
