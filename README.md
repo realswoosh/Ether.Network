@@ -1,37 +1,18 @@
-# Ether.Network 
+# ![logo](https://raw.githubusercontent.com/Eastrall/Ether.Network/develop/banner.png)
 
 [![Build Status](https://travis-ci.org/Eastrall/Ether.Network.svg?branch=develop)](https://travis-ci.org/Eastrall/Ether.Network)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/e84d77087d6940f79061799383cc1432)](https://www.codacy.com/app/Eastrall/Ether.Network?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Eastrall/Ether.Network&amp;utm_campaign=Badge_Grade)
 [![NuGet Status](https://img.shields.io/nuget/v/Ether.Network.svg)](https://www.nuget.org/packages/Ether.Network/)
 
 Ether.Network is a basic library to make quickly a simple server or client using sockets.
 
-This library is coded in C# using .NET Core framework to target Windows and Linux operating systems.
-
-For now we use the basic synchronous sockets, and in the future we'll add the support of asynchronous sockets to increase performances and stability.
+This library is coded with C# using .NET Core framework to target Windows and Linux operating systems.
 
 ## Framework support
 
-- .NET Core 1.0
-- .NET Framework 4.6.1
-- .NET Framework 4.6
+- .NET Core 1.0 (netstandard1.3)
 - .NET Framework 4.5.1
 - .NET Framework 4.5
-
-## Features
-
-### Version 1.1.0
-
-- [NetPacket][netpacket] : Packet abstraction. You can now create our own packet implementation.
-- [NetDelayer][netdelayer] : Call actions every X milliseconds.
-- [NetServer][netserver]: NetServer abstraction.
-	- Custom treatments on your incoming data by overriding the `NetServer.SplitPackets` method.
-	- OnClientConnected/Disconnected virtual methods. Can be overrided.
-
-### Version 1.0.0
-
-- [NetServer][netserver]: Socket server implementation handling multiple [Clients][netconnection]
-- [NetClient][netclient]: Socket client implementation
-- [NetPacket][netpacket]: Read/Write packet implementation.
 
 ## How to install
 
@@ -41,143 +22,138 @@ Create a .NETCore project and add the nuget package: `Ether.Network` or you can 
 
 ## How to use
 
-There is a sample server application for verison 1.1.0:
-
-```c#
-using Ether.Network;
-using Ether.Network.Packets;
-using System;
-using System.Net.Sockets;
-
-namespace MyServer
-{
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            using (var server = new Server())
-                server.Start();
-        }
-    }
-
-    public class Server : NetServer<Client>
-    {
-        public Server()
-            : base()
-        {
-            this.Configuration = new NetConfiguration()
-            {
-                Ip = "127.0.0.1",
-                Port = 4444
-            };
-        }
-
-        protected override void OnClientConnected(NetConnection client)
-        {
-            Console.WriteLine("New client connected. Id: {0}", client.Id);
-        }
-
-        protected override void OnClientDisconnected(NetConnection client)
-        {
-            Console.WriteLine("Client disconnected");
-        }
-
-        protected override void Initialize()
-        {
-            // TODO: initialize specific server resources at startup.
-        }
-
-        protected override void Idle()
-        {
-            Console.WriteLine("Server started! Listening on port {0}", this.Configuration.Port);
-            // TODO: do custom process on main thread.
-            while (this.IsRunning)
-            {
-                Console.ReadKey();
-            }
-        }
-    }
-
-    public class Client : NetConnection
-    {
-        public Client()
-            : base()
-        {
-        }
-
-        public Client(Socket socket)
-            : base(socket)
-        {
-        }
-
-        public override void Greetings()
-        {
-            // say hi to the connected client
-            var hiPacket = new NetPacket();
-
-            hiPacket.Write(42); // packet header
-            hiPacket.Write("Hello client!");
-
-            this.Send(hiPacket);
-        }
-
-        public override void HandleMessage(NetPacketBase packet)
-        {
-            int value = packet.Read<int>(); // packet header
-            string message = packet.Read<string>();
-
-            Console.WriteLine("message from client: {0}", message);
-
-            base.HandleMessage(packet);
-        }
-    }
-}
-```
-
-And now a simple client app
+### Server application
 
 ```c#
 using Ether.Network;
 using Ether.Network.Packets;
 using System;
 
-namespace MyClient
+namespace ServerApp
 {
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            Console.Title = "Client";
+	class Program
+	{
+		using (var server = new MyServer())
+			server.Start();
+	}
 
-            using (var client = new Client())
+	class MyServer : NetServer<ClientConnection>
+	{
+		public MyServer()
+		{
+			// Configure the server
+			this.Configuration.Backlog = 100;
+            		this.Configuration.Port = 8888;
+            		this.Configuration.MaximumNumberOfConnections = 100;
+            		this.Configuration.Host = "127.0.0.1";
+		}
+
+        	protected override void Initialize()
+        	{
+            		Console.WriteLine("Server is ready.");
+        	}
+
+        	protected override void OnClientConnected(ClientConnection connection)
+        	{
+            		Console.WriteLine("New client connected!");
+
+           		connection.SendFirstPacket();
+        	}
+
+        	protected override void OnClientDisconnected(ClientConnection connection)
+        	{
+            		Console.WriteLine("Client disconnected!");
+        	}
+	}
+
+	class Client : NetConnection
+	{
+		public void SendFirstPacket()
+		{
+		    	using (var packet = new NetPacket())
+		    	{
+				packet.Write("Welcome " + this.Id.ToString());
+
+				this.Send(packet);
+		    	}
+		}
+
+		public override void HandleMessage(NetPacketBase packet)
+		{
+		    	string value = packet.Read<string>();
+
+		    	Console.WriteLine("Received '{1}' from {0}", this.Id, value);
+
+		    	using (var p = new NetPacket())
+		    	{
+				p.Write(string.Format("OK: '{0}'", value));
+				this.Send(p);
+		    	}
+		}
+    	}
+}
+```
+
+### Client application
+
+```c#
+using System;
+using Ether.Network;
+using Ether.Network.Packets;
+
+namespace SampleClient
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            var client = new MyClient("127.0.0.1", 8888, 4096);
+            client.Connect();
+            Console.WriteLine("Enter a message and press enter...");
+
+            while (true)
             {
-                client.Connect("127.0.0.1", 4444);
-                client.Run();
+                string input = Console.ReadLine();
+
+                if (input == "quit") break;
+
+                using (var packet = new NetPacket())
+                {
+                    packet.Write(input);
+                    client.Send(packet);
+                }
             }
+
+            client.Disconnect();
+
+            Console.WriteLine("Disconnected. Press any key to continue...");
+            Console.ReadLine();
         }
     }
 
-    public class Client : NetClient
+    class MyClient : NetClient
     {
-        public Client()
-            : base() { }
-
-        public override void HandleMessage(NetPacketBase packet)
+        public MyClient(string host, int port, int bufferSize) 
+            : base(host, port, bufferSize)
         {
-            int header = packet.Read<int>();
-            string message = packet.Read<string>();
+        }
 
-            Console.WriteLine("Message from server: {0}", message);
+        protected override void HandleMessage(NetPacketBase packet)
+        {
+            var response = packet.Read<string>();
 
-            base.HandleMessage(packet);
+            Console.WriteLine("-> Server response: {0}", response);
+        }
+
+        protected override void OnConnected()
+        {
+            Console.WriteLine("Connected to {0}", this.Socket.RemoteEndPoint.ToString());
+        }
+
+        protected override void OnDisconnected()
+        {
+            Console.WriteLine("Disconnected");
         }
     }
 }
 ```
-
-[netdelayer]: src/Ether.Network/NetDelayer.cs
-[netserver]: src/Ether.Network/NetServer.cs
-[netclient]: src/Ether.Network/NetClient.cs
-[netpacket]: src/Ether.Network/Packets/NetPacket.cs
-[netpacketbase]: src/Ether.Network/Packets/NetPacketBase.cs
-[netconnection]: src/Ether.Network/NetConnection.cs

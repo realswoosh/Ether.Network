@@ -1,5 +1,4 @@
-﻿using Ether.Network.Helpers;
-using Ether.Network.Packets;
+﻿using Ether.Network.Packets;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
@@ -9,12 +8,17 @@ namespace Ether.Network
     /// <summary>
     /// Net connection representing a connection.
     /// </summary>
-    public class NetConnection : IDisposable
+    public abstract class NetConnection : IDisposable
     {
+        /// <summary>
+        /// Gets or sets the SendAction.
+        /// </summary>
+        protected Action<NetConnection, byte[]> SendAction { get; set; }
+
         /// <summary>
         /// Gets the generated unique Id of the connection.
         /// </summary>
-        public int Id { get; protected set; }
+        public Guid Id { get; protected set; }
 
         /// <summary>
         /// Gets the connection socket.
@@ -22,46 +26,29 @@ namespace Ether.Network
         public Socket Socket { get; protected set; }
         
         /// <summary>
-        /// Creates a new NetConnection instance.
+        /// Creates a new <see cref="NetConnection"/> instance.
         /// </summary>
-        public NetConnection()
-            : this(null)
+        protected NetConnection()
         {
+            this.Id = Guid.NewGuid();
         }
-
+        
         /// <summary>
-        /// Creates a new NetConnection instance with a socket.
+        /// Initialize this <see cref="NetConnection"/> instance.
         /// </summary>
-        /// <param name="acceptedSocket">Client socket.</param>
-        public NetConnection(Socket acceptedSocket)
+        /// <param name="socket">Socket</param>
+        /// <param name="sendAction">Action to send a buffer through the network.</param>
+        internal void Initialize(Socket socket, Action<NetConnection, byte[]> sendAction)
         {
-            this.Id = Helper.GenerateUniqueId();
-            this.Initialize(acceptedSocket);
+            this.Socket = socket;
+            this.SendAction = sendAction;
         }
-
-        /// <summary>
-        /// Initialize the socket and send greetings to the client to inform him that he's connected.
-        /// </summary>
-        /// <param name="acceptedSocket">Client socket.</param>
-        internal void Initialize(Socket acceptedSocket)
-        {
-            if (this.Socket != null)
-                return;
-
-            this.Socket = acceptedSocket;
-            this.Greetings();
-        }
-
-        /// <summary>
-        /// Send welcome packet to client.
-        /// </summary>
-        public virtual void Greetings() { }
 
         /// <summary>
         /// Handle packets.
         /// </summary>
         /// <param name="packet">Packet recieved.</param>
-        public virtual void HandleMessage(NetPacketBase packet) { }
+        public abstract void HandleMessage(NetPacketBase packet);
 
         /// <summary>
         /// Send a packet to this client.
@@ -69,7 +56,7 @@ namespace Ether.Network
         /// <param name="packet"></param>
         public void Send(NetPacketBase packet)
         {
-            this.Socket.Send(packet.Buffer);
+            this.SendAction?.Invoke(this, packet.Buffer);
         }
 
         /// <summary>
@@ -77,7 +64,7 @@ namespace Ether.Network
         /// </summary>
         /// <param name="destClient">Destination client</param>
         /// <param name="packet">Packet to send</param>
-        public void SendTo(NetConnection destClient, NetPacketBase packet)
+        public static void SendTo(NetConnection destClient, NetPacketBase packet)
         {
             destClient.Send(packet);
         }
@@ -87,7 +74,7 @@ namespace Ether.Network
         /// </summary>
         /// <param name="clients">Clients</param>
         /// <param name="packet">Packet to send</param>
-        public void SendTo(ICollection<NetConnection> clients, NetPacketBase packet)
+        public static void SendTo(ICollection<NetConnection> clients, NetPacketBase packet)
         {
             foreach (var client in clients)
                 client.Send(packet);
@@ -96,7 +83,7 @@ namespace Ether.Network
         /// <summary>
         /// Dispose the NetConnection resources.
         /// </summary>
-        public void Dispose()
+        public virtual void Dispose()
         {
             if (this.Socket == null)
                 return;
