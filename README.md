@@ -1,4 +1,4 @@
-# ![logo](https://raw.githubusercontent.com/Eastrall/Ether.Network/V2/banner.png)
+# ![logo](https://raw.githubusercontent.com/Eastrall/Ether.Network/develop/banner.png)
 
 [![Build Status](https://travis-ci.org/Eastrall/Ether.Network.svg?branch=develop)](https://travis-ci.org/Eastrall/Ether.Network)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/e84d77087d6940f79061799383cc1432)](https://www.codacy.com/app/Eastrall/Ether.Network?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Eastrall/Ether.Network&amp;utm_campaign=Badge_Grade)
