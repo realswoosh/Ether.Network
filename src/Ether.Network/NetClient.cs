@@ -169,9 +169,7 @@ namespace Ether.Network
         {
             if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
             {
-                var buffer = new byte[e.BytesTransferred];
-
-                Buffer.BlockCopy(e.Buffer, e.Offset, buffer, 0, e.BytesTransferred);
+                byte[] buffer = NetUtils.GetPacketBuffer(e.Buffer, e.Offset, e.BytesTransferred);
                 IReadOnlyCollection<NetPacketBase> packets = this.SplitPackets(buffer);
 
                 foreach (var packet in packets)

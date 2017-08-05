@@ -214,9 +214,7 @@ namespace Ether.Network
         /// <param name="e"></param>
         private void DispatchPackets(NetConnection netConnection, SocketAsyncEventArgs e)
         {
-            var buffer = new byte[e.BytesTransferred];
-
-            Buffer.BlockCopy(e.Buffer, e.Offset, buffer, 0, e.BytesTransferred);
+            byte[] buffer = NetUtils.GetPacketBuffer(e.Buffer, e.Offset, e.BytesTransferred);
             IReadOnlyCollection<NetPacketBase> packets = this.SplitPackets(buffer);
 
             foreach (var packet in packets)
