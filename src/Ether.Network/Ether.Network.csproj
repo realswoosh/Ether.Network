@@ -21,7 +21,7 @@
     <Version>2.0.0</Version>
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
     <FileVersion>2.0.0.0</FileVersion>
-    <PackageIconUrl>https://raw.githubusercontent.com/Eastrall/Ether.Network/icon.png</PackageIconUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/Eastrall/Ether.Network/master/icon.png</PackageIconUrl>
     <RepositoryUrl>https://github.com/Eastrall/Ether.Network</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
   </PropertyGroup>

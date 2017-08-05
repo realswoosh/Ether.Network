@@ -1,4 +1,6 @@
-﻿namespace Ether.Network
+﻿using System;
+
+namespace Ether.Network
 {
     /// <summary>
     /// NetServer interface.
@@ -19,5 +21,11 @@
         /// Stop the server.
         /// </summary>
         void Stop();
+
+        /// <summary>
+        /// Disconnects a client from the server.
+        /// </summary>
+        /// <param name="clientId">Client unique id</param>
+        void DisconnectClient(Guid clientId);
     }
 }
