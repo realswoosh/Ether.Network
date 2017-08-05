@@ -166,7 +166,7 @@ namespace Ether.Network
                 client.Initialize(e.AcceptSocket, this.SendData);
 
                 if (!this._clients.TryAdd(client.Id, client))
-                    throw new EtherException("");
+                    throw new EtherException($"Client {client.Id} already exists in client list.");
 
                 this.OnClientConnected(client);
                 
