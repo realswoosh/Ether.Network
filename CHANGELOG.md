@@ -2,7 +2,19 @@
 
 ## [Unreleased]
 
-## [2.0.0] - 2017-08-20
+## [2.0.1] - 2017-08-06
+
+### Added
+
+- Add the `DisconnectClient(Guid clientId)` method to `NetServer`.
+
+### Changed
+
+- Changed `ConcurrentBag` to `ConcurrentDictionary` for client handling.
+
+## [Released]
+
+## [2.0.0] - 2017-08-01
 
 ### Added
 
@@ -19,9 +31,6 @@
 - Remove .NET Framework 4.6 support
 - Remove .NET Framework 4.6.1 support
 - Remove NetDelayer system
-
-
-## [Released]
 
 ## [1.1.7] - 2017-01-11
 
