@@ -11,7 +11,6 @@
         public EtherConfigurationException()
             : base("")
         {
-
         }
 
         /// <summary>

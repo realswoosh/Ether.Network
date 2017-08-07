@@ -16,7 +16,7 @@ namespace Ether.Network
     /// <typeparam name="T"></typeparam>
     public abstract class NetServer<T> : INetServer, IDisposable where T : NetConnection, new()
     {
-        private readonly ConcurrentBag<T> _clients;
+        private readonly ConcurrentDictionary<Guid, T> _clients;
         private readonly ManualResetEvent _resetEvent;
         private readonly SocketAsyncEventArgs _acceptArgs;
 
@@ -43,7 +43,7 @@ namespace Ether.Network
         /// <summary>
         /// Gets the connected client.
         /// </summary>
-        public IReadOnlyCollection<T> Clients => this._clients as IReadOnlyCollection<T>;
+        public IReadOnlyCollection<T> Clients => this._clients.Values as IReadOnlyCollection<T>;
 
         /// <summary>
         /// Creates a new <see cref="NetServer{T}"/> instance.
@@ -52,7 +52,7 @@ namespace Ether.Network
         {
             this.Configuration = new NetServerConfiguration(this);
             this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            this._clients = new ConcurrentBag<T>();
+            this._clients = new ConcurrentDictionary<Guid, T>();
             this._resetEvent = new ManualResetEvent(false);
             this._isRunning = false;
             this._acceptArgs = new SocketAsyncEventArgs();
@@ -104,6 +104,19 @@ namespace Ether.Network
         }
 
         /// <summary>
+        /// Disconnects the client from this server.
+        /// </summary>
+        /// <param name="clientId">Client unique Id</param>
+        public void DisconnectClient(Guid clientId)
+        {
+            if (!this._clients.ContainsKey(clientId))
+                throw new EtherClientNotFoundException(clientId);
+
+            if (this._clients.TryRemove(clientId, out T removedClient))
+                removedClient.Dispose();
+        }
+
+        /// <summary>
         /// Initialize the server resourrces.
         /// </summary>
         protected abstract void Initialize();
@@ -152,7 +165,9 @@ namespace Ether.Network
                 var client = new T();
                 client.Initialize(e.AcceptSocket, this.SendData);
 
-                this._clients.Add(client);
+                if (!this._clients.TryAdd(client.Id, client))
+                    throw new EtherException($"Client {client.Id} already exists in client list.");
+
                 this.OnClientConnected(client);
                 
                 SocketAsyncEventArgs readArgs = this._readPool.Pop();
@@ -184,7 +199,10 @@ namespace Ether.Network
             }
             else
             {
-                this.OnClientDisconnected(e.UserToken as T);
+                var netConnection = e.UserToken as T;
+
+                this.DisconnectClient(netConnection.Id);
+                this.OnClientDisconnected(netConnection);
                 e.UserToken = null;
                 e.Completed -= this.IO_Completed;
                 this._bufferManager.FreeBuffer(e);
@@ -199,9 +217,7 @@ namespace Ether.Network
         /// <param name="e"></param>
         private void DispatchPackets(NetConnection netConnection, SocketAsyncEventArgs e)
         {
-            var buffer = new byte[e.BytesTransferred];
-
-            Buffer.BlockCopy(e.Buffer, e.Offset, buffer, 0, e.BytesTransferred);
+            byte[] buffer = NetUtils.GetPacketBuffer(e.Buffer, e.Offset, e.BytesTransferred);
             IReadOnlyCollection<NetPacketBase> packets = this.SplitPackets(buffer);
 
             foreach (var packet in packets)
@@ -245,6 +261,7 @@ namespace Ether.Network
             }
             else
             {
+                this.DisconnectClient(netConnection.Id);
                 this.OnClientDisconnected(netConnection as T);
             }
 

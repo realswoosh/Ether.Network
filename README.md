@@ -66,7 +66,7 @@ namespace ServerApp
         	}
 	}
 
-	class Client : NetConnection
+	class ClientConnection : NetConnection
 	{
 		public void SendFirstPacket()
 		{

@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Linq;
+using System;
 
 namespace Ether.Network.Utils
 {
@@ -10,6 +11,15 @@ namespace Ether.Network.Utils
             var host = Dns.GetHostAddressesAsync(ipOrHost).Result.First().ToString();
 
             return IPAddress.TryParse(host, out IPAddress address) ? address : null;
+        }
+
+        public static byte[] GetPacketBuffer(byte[] bufferSource, int offset, int size)
+        {
+            var buffer = new byte[size];
+
+            Buffer.BlockCopy(bufferSource, offset, buffer, 0, size);
+
+            return buffer;
         }
     }
 }
