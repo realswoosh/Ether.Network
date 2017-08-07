@@ -199,7 +199,10 @@ namespace Ether.Network
             }
             else
             {
-                this.OnClientDisconnected(e.UserToken as T);
+                var netConnection = e.UserToken as T;
+
+                this.DisconnectClient(netConnection.Id);
+                this.OnClientDisconnected(netConnection);
                 e.UserToken = null;
                 e.Completed -= this.IO_Completed;
                 this._bufferManager.FreeBuffer(e);
@@ -258,6 +261,7 @@ namespace Ether.Network
             }
             else
             {
+                this.DisconnectClient(netConnection.Id);
                 this.OnClientDisconnected(netConnection as T);
             }
 
