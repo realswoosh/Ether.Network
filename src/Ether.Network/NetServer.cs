@@ -113,7 +113,10 @@ namespace Ether.Network
                 throw new EtherClientNotFoundException(clientId);
 
             if (this._clients.TryRemove(clientId, out T removedClient))
+            {
                 removedClient.Dispose();
+                this.OnClientDisconnected(removedClient);
+            }
         }
 
         /// <summary>

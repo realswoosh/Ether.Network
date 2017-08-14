@@ -29,6 +29,12 @@ namespace SampleServer
 
             Console.WriteLine("Received '{1}' from {0}", this.Id, value);
 
+            if (value == "yolo")
+            {
+                this.Dispose();
+                return;
+            }
+
             using (var p = new NetPacket())
             {
                 p.Write(string.Format("OK: '{0}'", value));

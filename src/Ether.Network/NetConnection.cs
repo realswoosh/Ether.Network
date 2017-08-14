@@ -88,6 +88,7 @@ namespace Ether.Network
             if (this.Socket == null)
                 return;
 
+            this.Socket.Shutdown(SocketShutdown.Both);
             this.Socket.Dispose();
             this.Socket = null;
         }

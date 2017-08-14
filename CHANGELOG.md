@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [2.0.2] - 2017-08-06
+
+### Fix
+
+- Call the `OnClientDisconnected` when the `DisconnectClient(Guid id)` method is called and the connection is disposed.
+
+
+## [Released]
+
 ## [2.0.1] - 2017-08-06
 
 ### Added
@@ -11,8 +20,6 @@
 ### Changed
 
 - Changed `ConcurrentBag` to `ConcurrentDictionary` for client handling.
-
-## [Released]
 
 ## [2.0.0] - 2017-08-01
 
