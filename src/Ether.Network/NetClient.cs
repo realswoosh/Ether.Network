@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Net;
 using Ether.Network.Utils;
 using Ether.Network.Exceptions;
+using System.Threading;
 
 namespace Ether.Network
 {
@@ -19,6 +20,7 @@ namespace Ether.Network
         private readonly SocketAsyncEventArgs _socketConnectArgs;
         private readonly SocketAsyncEventArgs _socketReceiveArgs;
         private readonly SocketAsyncEventArgs _socketSendArgs;
+        private readonly AutoResetEvent _sendEvent;
 
         /// <summary>
         /// Gets the <see cref="NetClient"/> unique Id.
@@ -46,6 +48,7 @@ namespace Ether.Network
             this._id = Guid.NewGuid();
             this._host = host;
             this._port = port;
+            this._sendEvent = new AutoResetEvent(false);
             this._socketConnectArgs = this.CreateSocketAsync();
             this._socketSendArgs = this.CreateSocketAsync();
             this._socketReceiveArgs = this.CreateSocketAsync();
@@ -99,7 +102,10 @@ namespace Ether.Network
             this._socketSendArgs.SetBuffer(buffer, 0, buffer.Length);
 
             if (this.Socket != null)
+            {
                 this.Socket.SendAsync(this._socketSendArgs);
+                this._sendEvent.WaitOne();
+            }
         }
 
         /// <summary>
@@ -192,6 +198,8 @@ namespace Ether.Network
                 this.ProcessConnect(e);
             if (e.LastOperation == SocketAsyncOperation.Receive)
                 this.ProcessReceive(e);
+            if (e.LastOperation == SocketAsyncOperation.Send)
+                this._sendEvent.Set();
         }
 
         /// <summary>

@@ -8,23 +8,31 @@ namespace SampleClient
         static void Main(string[] args)
         {
             var client = new MyClient("127.0.0.1", 8888, 4096);
-
             client.Connect();
 
             Console.WriteLine("Enter a message and press enter...");
-            while (true)
+            int i = 0;
+
+            while (i < 6)
             {
-                string input = Console.ReadLine();
+                string input = "That is a test " + i;
 
                 if (input == "quit")
-                    break;
-
-                Console.WriteLine("<- '{0}'", input);
-                using (var packet = new NetPacket())
                 {
-                    packet.Write(input);
-                    client.Send(packet);
+                    break;
                 }
+
+                if (input != null)
+                {
+                    using (var packet = new NetPacket())
+                    {
+                        packet.Write(input);
+
+                        client.Send(packet);
+                    }
+                }
+
+                i++;
             }
 
             client.Disconnect();
