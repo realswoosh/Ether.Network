@@ -221,10 +221,21 @@ namespace Ether.Network
         private void DispatchPackets(NetConnection netConnection, SocketAsyncEventArgs e)
         {
             byte[] buffer = NetUtils.GetPacketBuffer(e.Buffer, e.Offset, e.BytesTransferred);
+            Console.WriteLine("Bytes transfered: " + e.BytesTransferred);
             IReadOnlyCollection<NetPacketBase> packets = this.SplitPackets(buffer);
 
+
             foreach (var packet in packets)
-                netConnection.HandleMessage(packet);
+            {
+                try
+                {
+                    netConnection.HandleMessage(packet);
+                }
+                catch
+                {
+
+                }
+            }
         }
 
         /// <summary>

@@ -6,6 +6,8 @@ using System.Net;
 using Ether.Network.Utils;
 using Ether.Network.Exceptions;
 using System.Threading;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
 
 namespace Ether.Network
 {
@@ -21,6 +23,7 @@ namespace Ether.Network
         private readonly SocketAsyncEventArgs _socketReceiveArgs;
         private readonly SocketAsyncEventArgs _socketSendArgs;
         private readonly AutoResetEvent _sendEvent;
+        private readonly BlockingCollection<byte[]> _sendQueue;
 
         /// <summary>
         /// Gets the <see cref="NetClient"/> unique Id.
@@ -49,11 +52,14 @@ namespace Ether.Network
             this._host = host;
             this._port = port;
             this._sendEvent = new AutoResetEvent(false);
+            this._sendQueue = new BlockingCollection<byte[]>();
             this._socketConnectArgs = this.CreateSocketAsync();
             this._socketSendArgs = this.CreateSocketAsync();
             this._socketReceiveArgs = this.CreateSocketAsync();
             this._socketReceiveArgs.SetBuffer(new byte[bufferSize], 0, bufferSize);
             this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+
+            Task.Run(() => this.ProcessSend());
         }
 
         /// <summary>
@@ -91,20 +97,32 @@ namespace Ether.Network
         /// <param name="packet"></param>
         public void Send(NetPacketBase packet)
         {
-            if (!this.IsConnected)
-                throw new SocketException();
+            this._sendQueue.Add(packet.Buffer);
+        }
 
-            byte[] buffer = packet.Buffer;
-
-            if (buffer.Length <= 0)
-                return;
-
-            this._socketSendArgs.SetBuffer(buffer, 0, buffer.Length);
-
-            if (this.Socket != null)
+        private void ProcessSend()
+        {
+            while (true)
             {
-                this.Socket.SendAsync(this._socketSendArgs);
-                this._sendEvent.WaitOne();
+                byte[] buffer = this._sendQueue.Take();
+                if (buffer != null)
+                {
+                    if (!this.IsConnected)
+                        throw new SocketException();
+
+                    if (buffer.Length <= 0)
+                        return;
+
+                    Console.WriteLine("NetClient.ProcessSend(): buffer.Length: {0}", buffer.Length);
+
+                    this._socketSendArgs.SetBuffer(buffer, 0, buffer.Length);
+
+                    if (this.Socket != null)
+                    {
+                        this.Socket.SendAsync(this._socketSendArgs);
+                        this._sendEvent.WaitOne();
+                    }
+                }
             }
         }
 

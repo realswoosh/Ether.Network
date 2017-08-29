@@ -4,7 +4,7 @@
     <Description>Simple and fast network library.</Description>
     <Copyright>Filipe GOMES PEIXOTO © 2016</Copyright>
     <AssemblyTitle>Ether.Network</AssemblyTitle>
-    <VersionPrefix>1.2.0</VersionPrefix>
+    <VersionPrefix>2.0.2</VersionPrefix>
     <Authors>Filipe Gomes Peixoto</Authors>
     <TargetFrameworks>netstandard1.3;net45</TargetFrameworks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -18,9 +18,9 @@
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>2.0.1</Version>
-    <AssemblyVersion>2.0.1.0</AssemblyVersion>
-    <FileVersion>2.0.1.0</FileVersion>
+    <Version>2.0.2</Version>
+    <AssemblyVersion>2.0.2.0</AssemblyVersion>
+    <FileVersion>2.0.2.0</FileVersion>
     <PackageIconUrl>https://raw.githubusercontent.com/Eastrall/Ether.Network/master/icon.png</PackageIconUrl>
     <RepositoryUrl>https://github.com/Eastrall/Ether.Network</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>

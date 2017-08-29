@@ -13,7 +13,7 @@ namespace SampleClient
             Console.WriteLine("Enter a message and press enter...");
             int i = 0;
 
-            while (i < 6)
+            while (true)
             {
                 string input = "That is a test " + i;
 
@@ -35,6 +35,7 @@ namespace SampleClient
                 i++;
             }
 
+            Console.ReadLine();
             client.Disconnect();
 
             Console.WriteLine("Disconnected. Press any key to continue...");
