@@ -199,6 +199,12 @@ namespace Ether.Network
                 foreach (var packet in packets)
                     this.HandleMessage(packet);
             }
+            else if (e.SocketError == SocketError.ConnectionReset)
+            {
+                Console.WriteLine(e.SocketError.ToString());
+                this.Disconnect();
+                return;
+            }
 
             this.StartReceive(e);
         }

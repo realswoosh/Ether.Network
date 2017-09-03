@@ -15,7 +15,7 @@ namespace SampleClient
 
             while (true)
             {
-                string input = "That is a test " + i;
+                string input = Console.ReadLine(); 
 
                 if (input == "quit")
                 {
