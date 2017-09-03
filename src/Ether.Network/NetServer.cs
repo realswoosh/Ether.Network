@@ -100,6 +100,7 @@ namespace Ether.Network
             {
                 this._isRunning = false;
                 this._resetEvent.Set();
+                this.Socket.Shutdown(SocketShutdown.Both);
             }
         }
 
@@ -333,6 +334,7 @@ namespace Ether.Network
 
                     if (this.Socket != null)
                     {
+                        this.Socket.Shutdown(SocketShutdown.Both);
                         this.Socket.Dispose();
                         this.Socket = null;
                     }
