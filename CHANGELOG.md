@@ -2,12 +2,25 @@
 
 ## [Unreleased]
 
-## [2.0.2] - 2017-08-06
+## [2.1.0] - 2017-??-??
+
+### Added
+
+- Add support for `.NET Standard 2.0`
+- Add `OnError` method to `NetServer`
+- Add array reader on `NetPacketBase` (`T[] Read<T>(amount)`)
+
+### Changed
+
+- Change sending process on `NetServer`, now uses a sending queue
 
 ### Fix
 
 - Call the `OnClientDisconnected` when the `DisconnectClient(Guid id)` method is called and the connection is disposed.
 
+### Removed
+
+- ...
 
 ## [Released]
 

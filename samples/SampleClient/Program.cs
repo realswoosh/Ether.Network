@@ -13,29 +13,36 @@ namespace SampleClient
             Console.WriteLine("Enter a message and press enter...");
             int i = 0;
 
-            while (true)
+            try
             {
-                string input = Console.ReadLine(); 
-
-                if (input == "quit")
+                while (true)
                 {
-                    break;
-                }
+                    string input = Console.ReadLine(); //"Yolo " + i.ToString();
 
-                if (input != null)
-                {
-                    using (var packet = new NetPacket())
+                    if (input == "quit")
                     {
-                        packet.Write(input);
-
-                        client.Send(packet);
+                        break;
                     }
+
+                    if (input != null)
+                    {
+                        using (var packet = new NetPacket())
+                        {
+                            packet.Write(input);
+
+                            client.Send(packet);
+                        }
+                    }
+
+                    i++;
                 }
-
-                i++;
             }
-
-            Console.ReadLine();
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
+            }
+            
             client.Disconnect();
 
             Console.WriteLine("Disconnected. Press any key to continue...");

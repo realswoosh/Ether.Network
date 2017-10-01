@@ -4,23 +4,21 @@
     <Description>Simple and fast network library.</Description>
     <Copyright>Filipe GOMES PEIXOTO © 2016</Copyright>
     <AssemblyTitle>Ether.Network</AssemblyTitle>
-    <VersionPrefix>2.0.2</VersionPrefix>
+    <VersionPrefix>2.1.0</VersionPrefix>
     <Authors>Filipe Gomes Peixoto</Authors>
-    <TargetFrameworks>netstandard1.3;net45</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard1.3;net45</TargetFrameworks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyName>Ether.Network</AssemblyName>
     <PackageId>Ether.Network</PackageId>
     <PackageTags>c#;socket;network;server;client</PackageTags>
     <PackageProjectUrl>https://github.com/Eastrall/Ether.Network</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/Eastrall/Ether.Network/blob/master/LICENSE</PackageLicenseUrl>
-    <!--<PackageTargetFallback Condition=" '$(TargetFramework)' == 'netstandard1.6' ">$(PackageTargetFallback);dnxcore50</PackageTargetFallback>
-    <NetStandardImplicitPackageVersion Condition=" '$(TargetFramework)' == 'netstandard1.6' ">1.6.1</NetStandardImplicitPackageVersion>-->
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
-    <Version>2.0.2</Version>
-    <AssemblyVersion>2.0.2.0</AssemblyVersion>
-    <FileVersion>2.0.2.0</FileVersion>
+    <Version>2.1.0</Version>
+    <AssemblyVersion>2.1.0.0</AssemblyVersion>
+    <FileVersion>2.1.0.0</FileVersion>
     <PackageIconUrl>https://raw.githubusercontent.com/Eastrall/Ether.Network/master/icon.png</PackageIconUrl>
     <RepositoryUrl>https://github.com/Eastrall/Ether.Network</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
@@ -28,7 +26,7 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard1.3|AnyCPU'">
     <DocumentationFile />
-    <Optimize>True</Optimize>
+    <Optimize>false</Optimize>
   </PropertyGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.3' ">

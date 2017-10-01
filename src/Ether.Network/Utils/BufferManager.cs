@@ -36,6 +36,9 @@ namespace Ether.Network.Utils
                 e.SetBuffer(this._buffer, offset, this._bufferSize);
             else
             {
+                if ((this._buffer.Length - this._bufferSize) < this._currentIndex)
+                    return;
+
                 e.SetBuffer(this._buffer, this._currentIndex, this._bufferSize);
                 this._currentIndex += this._bufferSize;
             }
@@ -48,7 +51,7 @@ namespace Ether.Network.Utils
         public void FreeBuffer(SocketAsyncEventArgs e)
         {
             this._freeIndexPool.Push(e.Offset);
-            e.SetBuffer(this._buffer, 0, 0);
+            e.SetBuffer(null, 0, 0);
         }
     }
 }

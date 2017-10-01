@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Ether.Network
 {
@@ -14,10 +15,13 @@ namespace Ether.Network
     /// Managed TCP socket server.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public abstract class NetServer<T> : INetServer, IDisposable where T : NetConnection, new()
+    public abstract partial class NetServer<T> : INetServer, IDisposable where T : NetConnection, new()
     {
         private readonly ConcurrentDictionary<Guid, T> _clients;
+        private readonly ConcurrentQueue<PacketData> _messageQueue;
         private readonly ManualResetEvent _resetEvent;
+        private readonly AutoResetEvent _sendEvent;
+        private readonly AutoResetEvent _sendQueueNotifier;
         private readonly SocketAsyncEventArgs _acceptArgs;
 
         private bool _isRunning;
@@ -39,7 +43,7 @@ namespace Ether.Network
         /// Gets the <see cref="NetServer{T}"/> running state.
         /// </summary>
         public bool IsRunning => this._isRunning;
-        
+
         /// <summary>
         /// Gets the connected client.
         /// </summary>
@@ -53,7 +57,10 @@ namespace Ether.Network
             this.Configuration = new NetServerConfiguration(this);
             this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this._clients = new ConcurrentDictionary<Guid, T>();
+            this._messageQueue = new ConcurrentQueue<PacketData>();
             this._resetEvent = new ManualResetEvent(false);
+            this._sendEvent = new AutoResetEvent(false);
+            this._sendQueueNotifier = new AutoResetEvent(false);
             this._isRunning = false;
             this._acceptArgs = new SocketAsyncEventArgs();
             this._acceptArgs.Completed += this.IO_Completed;
@@ -66,25 +73,38 @@ namespace Ether.Network
         {
             if (this._isRunning)
                 throw new InvalidOperationException("Server is already running.");
-            
+
             if (this.Configuration.Port <= 0)
                 throw new EtherConfigurationException($"{this.Configuration.Port} is not a valid port.");
 
             var address = this.Configuration.Address;
             if (address == null)
                 throw new EtherConfigurationException($"Invalid host : {this.Configuration.Host}");
-            
+
             this._bufferManager = new BufferManager(this.Configuration.MaximumNumberOfConnections, this.Configuration.BufferSize);
 
             if (this._readPool == null)
-                this._readPool = new SocketAsyncEventArgsPool(this.Configuration.MaximumNumberOfConnections);
+            {
+                this._readPool = new SocketAsyncEventArgsPool();
+
+                for (int i = 0; i < this.Configuration.MaximumNumberOfConnections; i++)
+                    this._readPool.Push(NetUtils.CreateSocket(this.Configuration.BufferSize, this.IO_Completed));
+            }
 
             if (this._writePool == null)
-                this._writePool = new SocketAsyncEventArgsPool(this.Configuration.MaximumNumberOfConnections);
+            {
+                this._writePool = new SocketAsyncEventArgsPool();
+
+                for (int i = 0; i < this.Configuration.MaximumNumberOfConnections; i++)
+                    this._writePool.Push(NetUtils.CreateSocket(this.Configuration.BufferSize, this.IO_Completed));
+            }
 
             this.Initialize();
             this.Socket.Bind(new IPEndPoint(address, this.Configuration.Port));
             this.Socket.Listen(this.Configuration.Backlog);
+
+            Task.Factory.StartNew(this.ProcessSendQueue);
+
             this.StartAccept();
 
             this._isRunning = true;
@@ -138,6 +158,12 @@ namespace Ether.Network
         protected abstract void OnClientDisconnected(T connection);
 
         /// <summary>
+        /// Triggered when an error occurs on the server.
+        /// </summary>
+        /// <param name="exception">Exception</param>
+        protected abstract void OnError(Exception exception);
+
+        /// <summary>
         /// Split an incoming network buffer.
         /// </summary>
         /// <param name="buffer">Incoming data buffer</param>
@@ -173,11 +199,9 @@ namespace Ether.Network
                     throw new EtherException($"Client {client.Id} already exists in client list.");
 
                 this.OnClientConnected(client);
-                
+
                 SocketAsyncEventArgs readArgs = this._readPool.Pop();
                 readArgs.UserToken = client;
-                readArgs.Completed += this.IO_Completed;
-                this._bufferManager.SetBuffer(readArgs);
 
                 if (e.AcceptSocket != null && !e.AcceptSocket.ReceiveAsync(readArgs))
                     this.ProcessReceive(readArgs);
@@ -193,23 +217,18 @@ namespace Ether.Network
         /// <param name="e"></param>
         private void ProcessReceive(SocketAsyncEventArgs e)
         {
+            var netConnection = e.UserToken as T;
+
             if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
             {
-                var netConnection = e.UserToken as NetConnection;
-
                 this.DispatchPackets(netConnection, e);
                 if (netConnection.Socket != null && !netConnection.Socket.ReceiveAsync(e))
                     this.ProcessReceive(e);
             }
             else
             {
-                var netConnection = e.UserToken as T;
-
                 this.DisconnectClient(netConnection.Id);
-                this.OnClientDisconnected(netConnection);
                 e.UserToken = null;
-                e.Completed -= this.IO_Completed;
-                this._bufferManager.FreeBuffer(e);
                 this._readPool.Push(e);
             }
         }
@@ -222,9 +241,7 @@ namespace Ether.Network
         private void DispatchPackets(NetConnection netConnection, SocketAsyncEventArgs e)
         {
             byte[] buffer = NetUtils.GetPacketBuffer(e.Buffer, e.Offset, e.BytesTransferred);
-            Console.WriteLine("Bytes transfered: " + e.BytesTransferred);
             IReadOnlyCollection<NetPacketBase> packets = this.SplitPackets(buffer);
-
 
             foreach (var packet in packets)
             {
@@ -232,9 +249,9 @@ namespace Ether.Network
                 {
                     netConnection.HandleMessage(packet);
                 }
-                catch
+                catch (Exception exception)
                 {
-
+                    this.OnError(exception);
                 }
             }
         }
@@ -246,13 +263,46 @@ namespace Ether.Network
         /// <param name="buffer"></param>
         private void SendData(NetConnection sender, byte[] buffer)
         {
-            SocketAsyncEventArgs sendArg = this._writePool.Pop();
-            sendArg.UserToken = sender;
-            sendArg.Completed += this.IO_Completed;
-            sendArg.SetBuffer(buffer, 0, buffer.Length);
+            var newPacket = new PacketData(sender, buffer);
+            this._messageQueue.Enqueue(newPacket);
+            this._sendQueueNotifier.Set();
+        }
 
-            if (sender.Socket != null && !sender.Socket.SendAsync(sendArg))
-                this.ProcessSend(sendArg);
+        /// <summary>
+        /// Process the send queue.
+        /// </summary>
+        private void ProcessSendQueue()
+        {
+            while (true)
+            {
+                this._sendQueueNotifier.WaitOne();
+
+                if (this._messageQueue.TryDequeue(out PacketData packet))
+                {
+                    this.Send(packet);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Send the packet through the network.
+        /// </summary>
+        /// <param name="packet"></param>
+        private void Send(PacketData packet)
+        {
+            SocketAsyncEventArgs socketEvent = this._writePool.Pop();
+
+            if (socketEvent != null)
+            {
+                socketEvent.SetBuffer(packet.Data, 0, packet.Data.Length);
+                socketEvent.UserToken = packet.Sender;
+                packet.Sender.Socket.SendAsync(socketEvent);
+            }
+            else
+            {
+                this._sendEvent.WaitOne();
+                this.Send(packet);
+            }
         }
 
         /// <summary>
@@ -261,32 +311,8 @@ namespace Ether.Network
         /// <param name="e"></param>
         private void ProcessSend(SocketAsyncEventArgs e)
         {
-            var netConnection = e.UserToken as NetConnection;
-            bool resetBuffer = true;
-
-            if (e.SocketError == SocketError.Success)
-            {
-                if (e.BytesTransferred < e.Buffer.Length)
-                {
-                    resetBuffer = false;
-                    e.SetBuffer(e.BytesTransferred, e.Buffer.Length - e.BytesTransferred);
-                    if (netConnection.Socket != null && !netConnection.Socket.SendAsync(e))
-                        this.ProcessSend(e);
-                }
-            }
-            else
-            {
-                this.DisconnectClient(netConnection.Id);
-                this.OnClientDisconnected(netConnection as T);
-            }
-
-            if (resetBuffer)
-            {
-                e.UserToken = null;
-                e.SetBuffer(null, 0, 0);
-                e.Completed -= this.IO_Completed;
-                this._writePool.Push(e);
-            }
+            this._writePool.Push(e);
+            this._sendEvent.Set();
         }
 
         /// <summary>
@@ -357,7 +383,7 @@ namespace Ether.Network
             else
                 throw new ObjectDisposedException(nameof(NetServer<T>));
         }
-        
+
         /// <summary>
         /// Destroys the <see cref="NetServer{T}"/> instance.
         /// </summary>
