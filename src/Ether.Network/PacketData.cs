@@ -21,7 +21,5 @@ namespace Ether.Network
                 return this.Sender == other.Sender && this.Data == other.Data;
             }
         }
-
-        #endregion
     }
 }
