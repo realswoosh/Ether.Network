@@ -120,7 +120,7 @@ namespace Ether.Network
             {
                 this._isRunning = false;
                 this._resetEvent.Set();
-                this.Socket.Shutdown(SocketShutdown.Both);
+                //this.Socket.Shutdown(SocketShutdown.Both);
             }
         }
 

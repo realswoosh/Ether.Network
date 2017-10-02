@@ -43,5 +43,14 @@ namespace SampleServer
         {
             Console.WriteLine("Client disconnected!");
         }
+
+        /// <summary>
+        /// On server error.
+        /// </summary>
+        /// <param name="exception"></param>
+        protected override void OnError(Exception exception)
+        {
+            // TBA
+        }
     }
 }
