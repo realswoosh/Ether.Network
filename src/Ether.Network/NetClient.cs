@@ -12,7 +12,7 @@ namespace Ether.Network
     /// <summary>
     /// Managed TCP client.
     /// </summary>
-    public abstract class NetClient : INetClient
+    public abstract class NetClient : INetClient, IDisposable
     {
         private readonly Guid _id;
         private readonly string _host;
@@ -99,8 +99,6 @@ namespace Ether.Network
 
             if (buffer.Length <= 0)
                 return;
-
-            Console.WriteLine($"Packet Length: {buffer.Length}");
 
             this._socketSendArgs.SetBuffer(buffer, 0, buffer.Length);
 
@@ -216,6 +214,16 @@ namespace Ether.Network
             socketAsync.Completed += this.IO_Completed;
 
             return socketAsync;
+        }
+
+        /// <summary>
+        /// Dispose the <see cref="NetClient"/> instance.
+        /// </summary>
+        public void Dispose()
+        {
+            this._sendEvent.Dispose();
+            this.Socket.Shutdown(SocketShutdown.Both);
+            this.Socket.Dispose();
         }
     }
 }

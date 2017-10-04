@@ -2,24 +2,40 @@
 
 namespace Ether.Network
 {
-    public abstract partial class NetServer<T> where T : NetConnection, new()
+    /// <summary>
+    /// Defines the packet data structrure.
+    /// </summary>
+    public struct PacketData : IEquatable<PacketData>
     {
-        private struct PacketData : IEquatable<PacketData>
+        /// <summary>
+        /// Gets the packet sender.
+        /// </summary>
+        public NetConnection Sender { get; private set; }
+
+        /// <summary>
+        /// Gets the packet data buffer.
+        /// </summary>
+        public byte[] Data { get; private set; }
+
+        /// <summary>
+        /// Creates a new <see cref="NetConnection"/> object.
+        /// </summary>
+        /// <param name="sender">Packet sender</param>
+        /// <param name="data">Packet data</param>
+        public PacketData(NetConnection sender, byte[] data)
         {
-            public NetConnection Sender { get; private set; }
+            this.Sender = sender;
+            this.Data = data;
+        }
 
-            public byte[] Data { get; private set; }
-
-            public PacketData(NetConnection sender, byte[] data)
-            {
-                this.Sender = sender;
-                this.Data = data;
-            }
-
-            public bool Equals(PacketData other)
-            {
-                return this.Sender == other.Sender && this.Data == other.Data;
-            }
+        /// <summary>
+        /// Compares two <see cref="PacketData"/>.
+        /// </summary>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        public bool Equals(PacketData other)
+        {
+            return this.Sender == other.Sender && this.Data == other.Data;
         }
     }
 }

@@ -15,7 +15,7 @@ namespace Ether.Network
     /// Managed TCP socket server.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public abstract partial class NetServer<T> : INetServer, IDisposable where T : NetConnection, new()
+    public abstract class NetServer<T> : INetServer, IDisposable where T : NetConnection, new()
     {
         private readonly ConcurrentDictionary<Guid, T> _clients;
         private readonly ConcurrentQueue<PacketData> _messageQueue;
@@ -120,7 +120,6 @@ namespace Ether.Network
             {
                 this._isRunning = false;
                 this._resetEvent.Set();
-                //this.Socket.Shutdown(SocketShutdown.Both);
             }
         }
 
