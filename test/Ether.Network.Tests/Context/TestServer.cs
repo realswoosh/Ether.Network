@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Ether.Network.Tests.Server
+namespace Ether.Network.Tests.Context
 {
     internal class TestServer : NetServer<TestClient>
     {

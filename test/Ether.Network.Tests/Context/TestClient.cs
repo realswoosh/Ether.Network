@@ -1,6 +1,6 @@
 ﻿using Ether.Network.Packets;
 
-namespace Ether.Network.Tests.Server
+namespace Ether.Network.Tests.Context
 {
     internal class TestClient : NetConnection
     {
