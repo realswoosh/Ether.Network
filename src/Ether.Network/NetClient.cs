@@ -82,6 +82,7 @@ namespace Ether.Network
             if (this.IsConnected)
             {
                 this.Socket.Shutdown(SocketShutdown.Both);
+                this.Socket.Dispose();
             }
         }
 
@@ -165,7 +166,7 @@ namespace Ether.Network
         /// <param name="e"></param>
         private void StartReceive(SocketAsyncEventArgs e)
         {
-            if (this.Socket != null && !this.Socket.ReceiveAsync(e))
+            if (this.Socket != null && this.IsConnected && !this.Socket.ReceiveAsync(e))
                 this.ProcessReceive(e);
         }
 
