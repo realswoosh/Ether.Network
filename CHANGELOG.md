@@ -20,7 +20,7 @@
 
 ### Removed
 
-- ...
+- Buffer Manager
 
 ## [Released]
 
