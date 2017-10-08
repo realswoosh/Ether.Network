@@ -5,13 +5,14 @@ using System.Net.Sockets;
 using System.Net;
 using Ether.Network.Utils;
 using Ether.Network.Exceptions;
+using System.Threading;
 
 namespace Ether.Network
 {
     /// <summary>
     /// Managed TCP client.
     /// </summary>
-    public abstract class NetClient : INetClient
+    public abstract class NetClient : INetClient, IDisposable
     {
         private readonly Guid _id;
         private readonly string _host;
@@ -19,6 +20,7 @@ namespace Ether.Network
         private readonly SocketAsyncEventArgs _socketConnectArgs;
         private readonly SocketAsyncEventArgs _socketReceiveArgs;
         private readonly SocketAsyncEventArgs _socketSendArgs;
+        private readonly AutoResetEvent _sendEvent;
 
         /// <summary>
         /// Gets the <see cref="NetClient"/> unique Id.
@@ -46,6 +48,7 @@ namespace Ether.Network
             this._id = Guid.NewGuid();
             this._host = host;
             this._port = port;
+            this._sendEvent = new AutoResetEvent(false);
             this._socketConnectArgs = this.CreateSocketAsync();
             this._socketSendArgs = this.CreateSocketAsync();
             this._socketReceiveArgs = this.CreateSocketAsync();
@@ -79,6 +82,7 @@ namespace Ether.Network
             if (this.IsConnected)
             {
                 this.Socket.Shutdown(SocketShutdown.Both);
+                this.Socket.Dispose();
             }
         }
 
@@ -99,7 +103,10 @@ namespace Ether.Network
             this._socketSendArgs.SetBuffer(buffer, 0, buffer.Length);
 
             if (this.Socket != null)
+            {
                 this.Socket.SendAsync(this._socketSendArgs);
+                this._sendEvent.WaitOne();
+            }
         }
 
         /// <summary>
@@ -157,7 +164,7 @@ namespace Ether.Network
         /// <param name="e"></param>
         private void StartReceive(SocketAsyncEventArgs e)
         {
-            if (this.Socket != null && !this.Socket.ReceiveAsync(e))
+            if (this.Socket != null && this.IsConnected && !this.Socket.ReceiveAsync(e))
                 this.ProcessReceive(e);
         }
 
@@ -192,6 +199,8 @@ namespace Ether.Network
                 this.ProcessConnect(e);
             if (e.LastOperation == SocketAsyncOperation.Receive)
                 this.ProcessReceive(e);
+            if (e.LastOperation == SocketAsyncOperation.Send)
+                this._sendEvent.Set();
         }
 
         /// <summary>
@@ -205,6 +214,16 @@ namespace Ether.Network
             socketAsync.Completed += this.IO_Completed;
 
             return socketAsync;
+        }
+
+        /// <summary>
+        /// Dispose the <see cref="NetClient"/> instance.
+        /// </summary>
+        public void Dispose()
+        {
+            this._sendEvent.Dispose();
+            this.Socket.Shutdown(SocketShutdown.Both);
+            this.Socket.Dispose();
         }
     }
 }

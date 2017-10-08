@@ -11,7 +11,7 @@ This library is coded with C# using .NET Core framework to target Windows and Li
 ## Framework support
 
 - .NET Core 1.0 (netstandard1.3)
-- .NET Framework 4.5.1
+- .NET Core 2.0 (netstandard2.0)
 - .NET Framework 4.5
 
 ## How to install

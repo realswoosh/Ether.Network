@@ -14,13 +14,9 @@ namespace Ether.Network.Utils
         /// <summary>
         /// Creates a new <see cref="SocketAsyncEventArgsPool"/> instance with a maximal capacity.
         /// </summary>
-        /// <param name="capacity">Maximal capacity</param>
-        public SocketAsyncEventArgsPool(int capacity)
+        public SocketAsyncEventArgsPool()
         {
             this._socketPool = new ConcurrentStack<SocketAsyncEventArgs>();
-
-            for (int i = 0; i < capacity; i++)
-                this._socketPool.Push(new SocketAsyncEventArgs());
         }
 
         /// <summary>

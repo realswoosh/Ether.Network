@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Linq;
 using System;
+using System.Net.Sockets;
 
 namespace Ether.Network.Utils
 {
@@ -20,6 +21,16 @@ namespace Ether.Network.Utils
             Buffer.BlockCopy(bufferSource, offset, buffer, 0, size);
 
             return buffer;
+        }
+
+        public static SocketAsyncEventArgs CreateSocket(int bufferSize, EventHandler<SocketAsyncEventArgs> completedAction)
+        {
+            var socket = new SocketAsyncEventArgs();
+
+            socket.Completed += completedAction;
+            socket.SetBuffer(new Byte[bufferSize], 0, bufferSize);
+
+            return socket;
         }
     }
 }

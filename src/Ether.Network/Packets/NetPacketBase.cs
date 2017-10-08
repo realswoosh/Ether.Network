@@ -77,8 +77,10 @@ namespace Ether.Network.Packets
 #if NET45 || NET451
             return this.MemoryStream.GetBuffer();
 #else
-            this.MemoryStream.TryGetBuffer(out ArraySegment<byte> buffer);
-            return buffer.ToArray();
+            if (this.MemoryStream.TryGetBuffer(out ArraySegment<byte> buffer))
+                return buffer.ToArray();
+
+            return new byte[0];
 #endif
         }
 
@@ -114,6 +116,32 @@ namespace Ether.Network.Packets
                 return (T)NetPacketMethods.ReadMethods[type](this.MemoryReader);
 
             return default(T);
+        }
+
+        /// <summary>
+        /// Reads an array of T value from the packet.
+        /// </summary>
+        /// <typeparam name="T">Value type.</typeparam>
+        /// <param name="amount">Amount to read.</param>
+        /// <returns></returns>
+        public virtual T[] Read<T>(int amount)
+        {
+            if (this._state != PacketStateType.Read)
+                throw new InvalidOperationException("Packet is in write-only mode.");
+
+            var array = new T[amount];
+            var type = typeof(T);
+
+            if (type == typeof(byte))
+                array = this.MemoryReader.ReadBytes(amount) as T[];
+
+            if (NetPacketMethods.ReadMethods.ContainsKey(type))
+            {
+                for (int i = 0; i < amount; i++)
+                    array[i] = this.Read<T>();
+            }
+
+            return array;
         }
 
         /// <summary>

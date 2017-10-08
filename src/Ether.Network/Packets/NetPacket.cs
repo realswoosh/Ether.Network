@@ -17,9 +17,11 @@ namespace Ether.Network.Packets
         {
             get
             {
+                long oldPosition = this.Position;
+
                 this.MemoryWriter.Seek(0, SeekOrigin.Begin);
-                this.Write(this.Size);
-                this.MemoryWriter.Seek(this.Size, SeekOrigin.Begin);
+                this.Write(this.Size - sizeof(int));
+                this.MemoryWriter.Seek((int)oldPosition, SeekOrigin.Begin);
 
                 return this.GetBuffer();
             }
@@ -59,7 +61,7 @@ namespace Ether.Network.Packets
                     while (readerStream.BaseStream.Position < readerStream.BaseStream.Length)
                     {
                         var packetSize = readerStream.ReadInt32();
-
+                        
                         if (packetSize == 0)
                             break;
                         
