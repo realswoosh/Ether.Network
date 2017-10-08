@@ -25,7 +25,6 @@ namespace Ether.Network
         private readonly SocketAsyncEventArgs _acceptArgs;
 
         private bool _isRunning;
-        private BufferManager _bufferManager;
         private SocketAsyncEventArgsPool _readPool;
         private SocketAsyncEventArgsPool _writePool;
 
@@ -80,8 +79,6 @@ namespace Ether.Network
             var address = this.Configuration.Address;
             if (address == null)
                 throw new EtherConfigurationException($"Invalid host : {this.Configuration.Host}");
-
-            this._bufferManager = new BufferManager(this.Configuration.MaximumNumberOfConnections, this.Configuration.BufferSize);
 
             if (this._readPool == null)
             {
