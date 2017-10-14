@@ -126,6 +126,12 @@ namespace Ether.Network
         protected abstract void OnDisconnected();
 
         /// <summary>
+        /// Triggered when a error on the socket happend
+        /// </summary>
+        /// <param name="socketError"></param>
+        protected abstract void OnSocketError(SocketError socketError);
+
+        /// <summary>
         /// Split an incoming buffer from the network in a collection of <see cref="NetPacketBase"/>.
         /// </summary>
         /// <param name="buffer">Incoming data</param>
@@ -156,6 +162,7 @@ namespace Ether.Network
                 this.OnConnected();
                 this.StartReceive(this._socketReceiveArgs);
             }
+            else this.OnSocketError(e.SocketError);
         }
 
         /// <summary>
@@ -182,6 +189,8 @@ namespace Ether.Network
                 foreach (var packet in packets)
                     this.HandleMessage(packet);
             }
+            else if(e.SocketError != SocketError.Success)
+                this.OnSocketError(e.SocketError);
 
             this.StartReceive(e);
         }
