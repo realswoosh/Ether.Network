@@ -76,7 +76,7 @@ namespace Ether.Network
             if (this.Configuration.Port <= 0)
                 throw new EtherConfigurationException($"{this.Configuration.Port} is not a valid port.");
 
-            var address = this.Configuration.Address;
+            var address = this.Configuration.Host == "0.0.0.0" ? IPAddress.Any : this.Configuration.Address;
             if (address == null)
                 throw new EtherConfigurationException($"Invalid host : {this.Configuration.Host}");
 
