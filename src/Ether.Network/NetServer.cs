@@ -17,6 +17,8 @@ namespace Ether.Network
     /// <typeparam name="T"></typeparam>
     public abstract class NetServer<T> : INetServer, IDisposable where T : NetConnection, new()
     {
+        private static readonly string AllInterfaces = "0.0.0.0";
+
         private readonly ConcurrentDictionary<Guid, T> _clients;
         private readonly ConcurrentQueue<PacketData> _messageQueue;
         private readonly ManualResetEvent _resetEvent;
@@ -76,7 +78,7 @@ namespace Ether.Network
             if (this.Configuration.Port <= 0)
                 throw new EtherConfigurationException($"{this.Configuration.Port} is not a valid port.");
 
-            var address = this.Configuration.Host == "0.0.0.0" ? IPAddress.Any : this.Configuration.Address;
+            var address = this.Configuration.Host == AllInterfaces ? IPAddress.Any : this.Configuration.Address;
             if (address == null)
                 throw new EtherConfigurationException($"Invalid host : {this.Configuration.Host}");
 
