@@ -1,6 +1,7 @@
 ﻿using Ether.Network;
 using System;
 using Ether.Network.Packets;
+using System.Net.Sockets;
 
 namespace SampleClient
 {
@@ -42,6 +43,11 @@ namespace SampleClient
         protected override void OnDisconnected()
         {
             Console.WriteLine("Disconnected");
+        }
+
+        protected override void OnSocketError(SocketError socketError)
+        {
+            Console.WriteLine("Socket Error: {0}", socketError.ToString());
         }
     }
 }

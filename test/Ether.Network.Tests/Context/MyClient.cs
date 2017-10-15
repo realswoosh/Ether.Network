@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net.Sockets;
 using Ether.Network.Packets;
 
 namespace Ether.Network.Tests.Context
@@ -28,6 +29,10 @@ namespace Ether.Network.Tests.Context
         }
 
         protected override void OnDisconnected()
+        {
+        }
+
+        protected override void OnSocketError(SocketError socketError)
         {
         }
     }
