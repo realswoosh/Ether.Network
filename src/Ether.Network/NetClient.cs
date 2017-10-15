@@ -105,7 +105,6 @@ namespace Ether.Network
             if (this.Socket != null)
             {
                 this.Socket.SendAsync(this._socketSendArgs);
-                this._sendEvent.WaitOne();
             }
         }
 
@@ -189,7 +188,7 @@ namespace Ether.Network
                 foreach (var packet in packets)
                     this.HandleMessage(packet);
             }
-            else if(e.SocketError != SocketError.Success)
+            else if (e.SocketError != SocketError.Success)
                 this.OnSocketError(e.SocketError);
 
             this.StartReceive(e);
@@ -204,12 +203,22 @@ namespace Ether.Network
         {
             if (sender == null)
                 throw new ArgumentNullException(nameof(sender));
-            if (e.LastOperation == SocketAsyncOperation.Connect)
-                this.ProcessConnect(e);
-            if (e.LastOperation == SocketAsyncOperation.Receive)
-                this.ProcessReceive(e);
-            if (e.LastOperation == SocketAsyncOperation.Send)
-                this._sendEvent.Set();
+
+            switch (e.LastOperation)
+            {
+                case SocketAsyncOperation.Connect:
+                    this.ProcessConnect(e);
+                    break;
+                case SocketAsyncOperation.Receive:
+                    this.ProcessReceive(e);
+                    break;
+                case SocketAsyncOperation.Send:
+                    this._sendEvent.Set();
+                    break;
+                case SocketAsyncOperation.Disconnect: break;
+                default:
+                    throw new InvalidOperationException("Unexpected SocketAsyncOperation.");
+            }
         }
 
         /// <summary>
