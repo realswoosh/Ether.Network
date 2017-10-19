@@ -2,6 +2,7 @@
 using System.Linq;
 using System;
 using System.Net.Sockets;
+using Ether.Network.Exceptions;
 
 namespace Ether.Network.Utils
 {
@@ -12,6 +13,18 @@ namespace Ether.Network.Utils
             var host = Dns.GetHostAddressesAsync(ipOrHost).Result.First().ToString();
 
             return IPAddress.TryParse(host, out IPAddress address) ? address : null;
+        }
+
+        public static IPEndPoint CreateIpEndPoint(string ipOrHost, int port)
+        {
+            IPAddress address = GetIpAddress(ipOrHost);
+
+            if (address == null)
+                throw new EtherConfigurationException($"Invalid host or ip address: {ipOrHost}.");
+            if (port <= 0)
+                throw new EtherConfigurationException($"Invalid port: {port}");
+
+            return new IPEndPoint(address, port);
         }
 
         public static byte[] GetPacketBuffer(byte[] bufferSource, int offset, int size)

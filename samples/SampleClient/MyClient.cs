@@ -2,6 +2,7 @@
 using System;
 using Ether.Network.Packets;
 using System.Net.Sockets;
+using Ether.Network.Client;
 
 namespace SampleClient
 {
@@ -25,8 +26,15 @@ namespace SampleClient
         protected override void HandleMessage(NetPacketBase packet)
         {
             var response = packet.Read<string>();
-
             Console.WriteLine("-> Server response: {0}", response);
+
+            using (var newPacket = new NetPacket())
+            {
+                newPacket.Write(response);
+
+                this.Send(newPacket);
+            }
+
         }
 
         /// <summary>

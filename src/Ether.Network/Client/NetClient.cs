@@ -3,10 +3,12 @@ using Ether.Network.Exceptions;
 using Ether.Network.Packets;
 using Ether.Network.Utils;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Ether.Network.Client
 {
@@ -18,10 +20,17 @@ namespace Ether.Network.Client
         private readonly Guid _id;
         private readonly string _host;
         private readonly int _port;
-        private readonly SocketAsyncEventArgs _socketConnectArgs;
+        private readonly IPEndPoint _ipEndPoint;
+        private readonly Socket _socket;
         private readonly SocketAsyncEventArgs _socketReceiveArgs;
         private readonly SocketAsyncEventArgs _socketSendArgs;
-        private readonly AutoResetEvent _sendEvent;
+        private readonly AutoResetEvent _autoConnectEvent;
+        private readonly AutoResetEvent _autoSendEvent;
+        private readonly BlockingCollection<NetPacketBase> _sendingQueue;
+        private readonly BlockingCollection<NetPacketBase> _receivingQueue;
+
+        private readonly Task _sendingQueueWorker;
+        private readonly Task _receivingQueueWorker;
 
         /// <summary>
         /// Gets the <see cref="NetClient"/> unique Id.
@@ -31,7 +40,7 @@ namespace Ether.Network.Client
         /// <summary>
         /// Gets the <see cref="NetClient"/> socket.
         /// </summary>
-        protected Socket Socket { get; private set; }
+        protected Socket Socket => this._socket;
 
         /// <summary>
         /// Gets the <see cref="NetClient"/> connected state.
@@ -49,12 +58,16 @@ namespace Ether.Network.Client
             this._id = Guid.NewGuid();
             this._host = host;
             this._port = port;
-            this._sendEvent = new AutoResetEvent(false);
-            this._socketConnectArgs = this.CreateSocketAsync();
-            this._socketSendArgs = this.CreateSocketAsync();
-            this._socketReceiveArgs = this.CreateSocketAsync();
-            this._socketReceiveArgs.SetBuffer(new byte[bufferSize], 0, bufferSize);
-            this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            this._ipEndPoint = NetUtils.CreateIpEndPoint(this._host, this._port);
+            this._socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            this._socketSendArgs = CreateSocketAsync(this.Socket, -1, this.IO_Completed);
+            this._socketReceiveArgs = CreateSocketAsync(this.Socket, bufferSize, this.IO_Completed);
+            this._autoConnectEvent = new AutoResetEvent(false);
+            this._autoSendEvent = new AutoResetEvent(false);
+            this._sendingQueue = new BlockingCollection<NetPacketBase>();
+            this._receivingQueue = new BlockingCollection<NetPacketBase>();
+            this._sendingQueueWorker = new Task(this.ProcessSendingQueue);
+            this._receivingQueueWorker = new Task(this.ProcessReceiveQueue);
         }
 
         /// <summary>
@@ -65,25 +78,38 @@ namespace Ether.Network.Client
             if (this.IsConnected)
                 throw new InvalidOperationException("Client is already connected to remote.");
 
-            IPAddress address = NetUtils.GetIpAddress(this._host);
+            var connectSocket = new SocketAsyncEventArgs();
+            connectSocket.RemoteEndPoint = this._ipEndPoint;
+            connectSocket.UserToken = this._socket;
+            connectSocket.Completed += this.IO_Completed;
 
-            if (address == null)
-                throw new EtherConfigurationException($"Invalid host or ip address: {this._host}.");
-            if (this._port <= 0)
-                throw new EtherConfigurationException($"Invalid port: {this._port}");
+            this._socket.ConnectAsync(connectSocket);
+            this._autoConnectEvent.WaitOne();
 
-            this.StartConnect(address, this._port);
+            SocketError errorCode = connectSocket.SocketError;
+
+            if (errorCode != SocketError.Success)
+                throw new SocketException((Int32)errorCode);
+
+            this._sendingQueueWorker.Start();
+            this._receivingQueueWorker.Start();
+
+            //if (!this._socket.ReceiveAsync(this._socketReceiveArgs))
+            //    this.ProcessReceive(this._socketReceiveArgs);
         }
 
         /// <summary>
-        /// Disconnects the <see cref="NetClient"/>?
+        /// Disconnects the <see cref="NetClient"/>.
         /// </summary>
         public void Disconnect()
         {
             if (this.IsConnected)
             {
-                this.Socket.Shutdown(SocketShutdown.Both);
-                this.Socket.Dispose();
+#if !NETSTANDARD1_3
+                this._socket.Close();
+#endif
+                this._socket.Shutdown(SocketShutdown.Both);
+                this._socket.Dispose();
             }
         }
 
@@ -96,17 +122,7 @@ namespace Ether.Network.Client
             if (!this.IsConnected)
                 throw new SocketException();
 
-            byte[] buffer = packet.Buffer;
-
-            if (buffer.Length <= 0)
-                return;
-
-            this._socketSendArgs.SetBuffer(buffer, 0, buffer.Length);
-
-            if (this.Socket != null)
-            {
-                this.Socket.SendAsync(this._socketSendArgs);
-            }
+            this._sendingQueue.Add(packet);
         }
 
         /// <summary>
@@ -139,60 +155,37 @@ namespace Ether.Network.Client
         protected virtual IReadOnlyCollection<NetPacketBase> SplitPackets(byte[] buffer) => NetPacket.Split(buffer);
 
         /// <summary>
-        /// Starts the connect async operation.
+        /// Sends the packets in the sending queue.
         /// </summary>
-        /// <param name="address">Remote address</param>
-        /// <param name="port">Remote port</param>
-        private void StartConnect(IPAddress address, int port)
+        private void ProcessSendingQueue()
         {
-            this._socketConnectArgs.RemoteEndPoint = new IPEndPoint(address, port);
-
-            if (!this.Socket.ConnectAsync(this._socketConnectArgs))
-                this.ProcessConnect(this._socketConnectArgs);
-        }
-
-        /// <summary>
-        /// Process the connect async operation.
-        /// </summary>
-        /// <param name="e"></param>
-        private void ProcessConnect(SocketAsyncEventArgs e)
-        {
-            if (e.SocketError == SocketError.Success)
+            while (true)
             {
-                this.OnConnected();
-                this.StartReceive(this._socketReceiveArgs);
+                NetPacketBase packet = this._sendingQueue.Take();
+
+                if (packet != null)
+                {
+                    byte[] buffer = packet.Buffer;
+
+                    if (buffer.Length <= 0)
+                        continue;
+
+                    this._socketSendArgs.SetBuffer(buffer, 0, buffer.Length);
+                    this._socket.SendAsync(this._socketSendArgs);
+                    this._autoSendEvent.WaitOne();
+                }
             }
-            else this.OnSocketError(e.SocketError);
         }
 
         /// <summary>
-        /// Starts the receive async operation.
+        /// Process and dispatch the received packets.
         /// </summary>
-        /// <param name="e"></param>
-        private void StartReceive(SocketAsyncEventArgs e)
+        private void ProcessReceiveQueue()
         {
-            if (this.Socket != null && this.IsConnected && !this.Socket.ReceiveAsync(e))
-                this.ProcessReceive(e);
-        }
-
-        /// <summary>
-        /// Process the receive async operation.
-        /// </summary>
-        /// <param name="e"></param>
-        private void ProcessReceive(SocketAsyncEventArgs e)
-        {
-            if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
+            while (true)
             {
-                byte[] buffer = NetUtils.GetPacketBuffer(e.Buffer, e.Offset, e.BytesTransferred);
-                IReadOnlyCollection<NetPacketBase> packets = this.SplitPackets(buffer);
-
-                foreach (var packet in packets)
-                    this.HandleMessage(packet);
+                // TODO
             }
-            else if (e.SocketError != SocketError.Success)
-                this.OnSocketError(e.SocketError);
-
-            this.StartReceive(e);
         }
 
         /// <summary>
@@ -208,15 +201,18 @@ namespace Ether.Network.Client
             switch (e.LastOperation)
             {
                 case SocketAsyncOperation.Connect:
-                    this.ProcessConnect(e);
+                    this._autoConnectEvent.Set();
+                    this.OnConnected();
                     break;
                 case SocketAsyncOperation.Receive:
-                    this.ProcessReceive(e);
+                    
                     break;
                 case SocketAsyncOperation.Send:
-                    this._sendEvent.Set();
+                    this._autoSendEvent.Set();
                     break;
-                case SocketAsyncOperation.Disconnect: break;
+                case SocketAsyncOperation.Disconnect:
+                    this.OnDisconnected();
+                    break;
                 default:
                     throw new InvalidOperationException("Unexpected SocketAsyncOperation.");
             }
@@ -226,11 +222,17 @@ namespace Ether.Network.Client
         /// Creates a <see cref="SocketAsyncEventArgs"/>.
         /// </summary>
         /// <returns></returns>
-        private SocketAsyncEventArgs CreateSocketAsync()
+        private static SocketAsyncEventArgs CreateSocketAsync(object userToken, int bufferSize, EventHandler<SocketAsyncEventArgs> completedAction)
         {
-            var socketAsync = new SocketAsyncEventArgs();
-            socketAsync.UserToken = this.Socket;
-            socketAsync.Completed += this.IO_Completed;
+            var socketAsync = new SocketAsyncEventArgs()
+            {
+                UserToken = userToken
+            };
+
+            socketAsync.Completed += completedAction;
+
+            if (bufferSize <= 0)
+                socketAsync.SetBuffer(new byte[bufferSize], 0, bufferSize);
 
             return socketAsync;
         }
@@ -240,9 +242,9 @@ namespace Ether.Network.Client
         /// </summary>
         public virtual void Dispose()
         {
-            this._sendEvent.Dispose();
-            this.Socket.Shutdown(SocketShutdown.Both);
-            this.Socket.Dispose();
+            this._autoConnectEvent.Dispose();
+            this._autoSendEvent.Dispose();
+            this.Disconnect();
         }
     }
 }
