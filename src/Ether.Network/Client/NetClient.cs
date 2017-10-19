@@ -28,7 +28,6 @@ namespace Ether.Network.Client
         private readonly AutoResetEvent _autoSendEvent;
         private readonly BlockingCollection<NetPacketBase> _sendingQueue;
         private readonly BlockingCollection<NetPacketBase> _receivingQueue;
-
         private readonly Task _sendingQueueWorker;
         private readonly Task _receivingQueueWorker;
 
@@ -213,8 +212,7 @@ namespace Ether.Network.Client
                 case SocketAsyncOperation.Disconnect:
                     this.OnDisconnected();
                     break;
-                default:
-                    throw new InvalidOperationException("Unexpected SocketAsyncOperation.");
+                default: throw new InvalidOperationException("Unexpected socket async operation.");
             }
         }
 
@@ -231,7 +229,7 @@ namespace Ether.Network.Client
 
             socketAsync.Completed += completedAction;
 
-            if (bufferSize <= 0)
+            if (bufferSize > 0)
                 socketAsync.SetBuffer(new byte[bufferSize], 0, bufferSize);
 
             return socketAsync;

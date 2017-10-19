@@ -9,7 +9,7 @@ namespace Ether.Network.Tests.Context
             using (var packet = new NetPacket())
             {
                 packet.Write(0); // Hello header
-                packet.Write(NetServerTest.WelcomeText);
+                packet.Write(NetServerContext.WelcomeText);
 
                 this.Send(packet);
             }
