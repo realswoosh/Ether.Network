@@ -1,18 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using Ether.Network.Packets;
-using System.Net.Sockets;
-using System.Net;
-using Ether.Network.Utils;
+﻿using Ether.Network.Core;
 using Ether.Network.Exceptions;
+using Ether.Network.Packets;
+using Ether.Network.Utils;
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 
-namespace Ether.Network
+namespace Ether.Network.Client
 {
     /// <summary>
     /// Managed TCP client.
     /// </summary>
-    public abstract class NetClient : INetClient, IDisposable
+    public abstract class NetClient : INetClient
     {
         private readonly Guid _id;
         private readonly string _host;
@@ -237,7 +238,7 @@ namespace Ether.Network
         /// <summary>
         /// Dispose the <see cref="NetClient"/> instance.
         /// </summary>
-        public void Dispose()
+        public virtual void Dispose()
         {
             this._sendEvent.Dispose();
             this.Socket.Shutdown(SocketShutdown.Both);

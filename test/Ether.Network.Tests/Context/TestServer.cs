@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Ether.Network.Server;
+using System;
 
 namespace Ether.Network.Tests.Context
 {

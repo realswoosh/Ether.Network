@@ -1,12 +1,12 @@
 ﻿using System;
 using Ether.Network.Packets;
 
-namespace Ether.Network
+namespace Ether.Network.Core
 {
     /// <summary>
     /// <see cref="INetClient"/> interface.
     /// </summary>
-    public interface INetClient
+    public interface INetClient : IDisposable
     {
         /// <summary>
         /// Gets the <see cref="INetClient"/> unique Id.

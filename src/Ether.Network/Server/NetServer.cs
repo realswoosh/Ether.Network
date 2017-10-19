@@ -1,4 +1,5 @@
-﻿using Ether.Network.Exceptions;
+﻿using Ether.Network.Core;
+using Ether.Network.Exceptions;
 using Ether.Network.Packets;
 using Ether.Network.Utils;
 using System;
@@ -9,7 +10,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Ether.Network
+namespace Ether.Network.Server
 {
     /// <summary>
     /// Managed TCP socket server.

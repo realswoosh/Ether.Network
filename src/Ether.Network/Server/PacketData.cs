@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Ether.Network
+namespace Ether.Network.Server
 {
     /// <summary>
     /// Defines the packet data structrure.

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net.Sockets;
 using Ether.Network.Packets;
+using Ether.Network.Client;
 
 namespace Ether.Network.Tests.Context
 {

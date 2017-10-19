@@ -1,4 +1,5 @@
-﻿using Ether.Network.Exceptions;
+﻿using Ether.Network.Core;
+using Ether.Network.Exceptions;
 using Ether.Network.Tests.Context;
 using System;
 using System.Threading.Tasks;

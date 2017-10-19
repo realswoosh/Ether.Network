@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Ether.Network
+namespace Ether.Network.Core
 {
     /// <summary>
     /// NetServer interface.
