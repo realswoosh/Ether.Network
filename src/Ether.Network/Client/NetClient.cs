@@ -17,6 +17,8 @@ namespace Ether.Network.Client
     /// </summary>
     public abstract class NetClient : INetClient
     {
+        private readonly static IPacketProcessor BasePacketProcessor = new NetPacketProcessor();
+
         private readonly Guid _id;
         private readonly string _host;
         private readonly int _port;
@@ -27,7 +29,7 @@ namespace Ether.Network.Client
         private readonly AutoResetEvent _autoConnectEvent;
         private readonly AutoResetEvent _autoSendEvent;
         private readonly BlockingCollection<NetPacketBase> _sendingQueue;
-        private readonly BlockingCollection<NetPacketBase> _receivingQueue;
+        private readonly BlockingCollection<byte[]> _receivingQueue;
         private readonly Task _sendingQueueWorker;
         private readonly Task _receivingQueueWorker;
 
@@ -40,6 +42,11 @@ namespace Ether.Network.Client
         /// Gets the <see cref="NetClient"/> socket.
         /// </summary>
         protected Socket Socket => this._socket;
+
+        /// <summary>
+        /// Gets the packet processor.
+        /// </summary>
+        protected IPacketProcessor PacketProcessor => BasePacketProcessor;
 
         /// <summary>
         /// Gets the <see cref="NetClient"/> connected state.
@@ -61,10 +68,11 @@ namespace Ether.Network.Client
             this._socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this._socketSendArgs = CreateSocketAsync(this.Socket, -1, this.IO_Completed);
             this._socketReceiveArgs = CreateSocketAsync(this.Socket, bufferSize, this.IO_Completed);
+            this._socketReceiveArgs.UserToken = new AsyncUserToken(this._socket);
             this._autoConnectEvent = new AutoResetEvent(false);
             this._autoSendEvent = new AutoResetEvent(false);
             this._sendingQueue = new BlockingCollection<NetPacketBase>();
-            this._receivingQueue = new BlockingCollection<NetPacketBase>();
+            this._receivingQueue = new BlockingCollection<byte[]>();
             this._sendingQueueWorker = new Task(this.ProcessSendingQueue);
             this._receivingQueueWorker = new Task(this.ProcessReceiveQueue);
         }
@@ -93,8 +101,8 @@ namespace Ether.Network.Client
             this._sendingQueueWorker.Start();
             this._receivingQueueWorker.Start();
 
-            //if (!this._socket.ReceiveAsync(this._socketReceiveArgs))
-            //    this.ProcessReceive(this._socketReceiveArgs);
+            if (!this._socket.ReceiveAsync(this._socketReceiveArgs))
+                this.ProcessReceive(this._socketReceiveArgs);
         }
 
         /// <summary>
@@ -183,7 +191,86 @@ namespace Ether.Network.Client
         {
             while (true)
             {
-                // TODO
+                var receivedMessage = this._receivingQueue.Take();
+
+                if (receivedMessage != null)
+                {
+                    //this.HandleMessage(receivedMessage);
+                    //receivedMessage.Dispose();
+                }
+            }
+        }
+
+        private void ProcessReceive(SocketAsyncEventArgs e)
+        {
+            if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
+            {
+                Console.WriteLine("Processing receive");
+
+                var token = e.UserToken as AsyncUserToken;
+
+                ProcessReceivedData(token.DataStartOffset, token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred, 0, token, e);
+
+                token.NextReceiveOffset += e.BytesTransferred;
+
+                if (token.NextReceiveOffset == e.Buffer.Length)
+                {
+                    token.NextReceiveOffset = 0;
+
+                    if (token.DataStartOffset < e.Buffer.Length)
+                    {
+                        var notYesProcessDataSize = e.Buffer.Length - token.DataStartOffset;
+                        Buffer.BlockCopy(e.Buffer, token.DataStartOffset, e.Buffer, 0, notYesProcessDataSize);
+
+                        token.NextReceiveOffset = notYesProcessDataSize;
+                    }
+
+                    token.DataStartOffset = 0;
+                }
+
+                e.SetBuffer(token.NextReceiveOffset, e.Buffer.Length - token.NextReceiveOffset);
+
+                if (!token.Socket.ReceiveAsync(e))
+                    ProcessReceive(e);
+            }
+        }
+
+        private void ProcessReceivedData(int dataStartOffset, int totalReceivedDataSize, int alreadyProcessedDataSize, AsyncUserToken token, SocketAsyncEventArgs e)
+        {
+            if (alreadyProcessedDataSize >= totalReceivedDataSize)
+                return;
+
+            if (token.MessageSize == null)
+            {
+                int headerSize = this.PacketProcessor.HeaderSize;
+
+                if (totalReceivedDataSize > headerSize)
+                {
+                    var headerData = new byte[headerSize];
+                    Buffer.BlockCopy(e.Buffer, dataStartOffset, headerData, 0, headerSize);
+                    var messageSize = this.PacketProcessor.GetLength(headerData);
+
+                    token.MessageSize = messageSize;
+                    token.DataStartOffset = dataStartOffset + headerSize;
+
+                    ProcessReceivedData(token.DataStartOffset, totalReceivedDataSize, alreadyProcessedDataSize + headerSize, token, e);
+                }
+            }
+            else
+            {
+                // Read length
+                var messageSize = token.MessageSize.Value;
+                if (totalReceivedDataSize - alreadyProcessedDataSize >= messageSize)
+                {
+                    var messageData = new byte[messageSize];
+                    Buffer.BlockCopy(e.Buffer, dataStartOffset, messageData, 0, messageSize);
+                    this._receivingQueue.Add(messageData);
+
+                    token.DataStartOffset = dataStartOffset + messageSize;
+                    token.MessageSize = null;
+
+                    ProcessReceivedData(token.DataStartOffset, totalReceivedDataSize, alreadyProcessedDataSize + messageSize, token, e);
+                }
             }
         }
 
@@ -204,7 +291,7 @@ namespace Ether.Network.Client
                     this.OnConnected();
                     break;
                 case SocketAsyncOperation.Receive:
-                    
+                    this.ProcessReceive(e);
                     break;
                 case SocketAsyncOperation.Send:
                     this._autoSendEvent.Set();
