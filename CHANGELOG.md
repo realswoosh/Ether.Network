@@ -2,6 +2,31 @@
 
 ## [Unreleased]
 
+## [2.1.0] - Unknow release date
+
+**WARNING**: This version as major changes. It might be possible that we move directly to version 3.0.
+
+### Added
+
+- Add `INetPacketStream` interface and `NetPacketStream` implementation
+- Add `OnSocketError()` method to `NetClient` (PR [#42](https://github.com/Eastrall/Ether.Network/pull/42))
+- Add all interfaces support to `NetServer` (PR [#42](https://github.com/Eastrall/Ether.Network/pull/42))
+
+### Changed
+
+- `NetClient` sending process is using a queue.
+- `NetClient` message handler process is using a queue.
+
+### Fix
+
+- Improve receive process on `NetClient`.
+
+### Removed
+
+- ...
+
+## [Released]
+
 ## [2.1.0-pre] - 2017-10-08
 
 ### Added
@@ -21,8 +46,6 @@
 ### Removed
 
 - Buffer Manager
-
-## [Released]
 
 ## [2.0.1] - 2017-08-06
 
