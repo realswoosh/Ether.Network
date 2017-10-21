@@ -28,8 +28,8 @@ namespace Ether.Network.Client
         private readonly SocketAsyncEventArgs _socketSendArgs;
         private readonly AutoResetEvent _autoConnectEvent;
         private readonly AutoResetEvent _autoSendEvent;
-        private readonly BlockingCollection<INetPacketStream> _sendingQueue;
-        private readonly BlockingCollection<INetPacketStream> _receivingQueue;
+        private readonly BlockingCollection<byte[]> _sendingQueue;
+        private readonly BlockingCollection<byte[]> _receivingQueue;
         private readonly Task _sendingQueueWorker;
         private readonly Task _receivingQueueWorker;
 
@@ -67,12 +67,11 @@ namespace Ether.Network.Client
             this._ipEndPoint = NetUtils.CreateIpEndPoint(this._host, this._port);
             this._socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this._socketSendArgs = CreateSocketAsync(this.Socket, -1, this.IO_Completed);
-            this._socketReceiveArgs = CreateSocketAsync(this.Socket, bufferSize, this.IO_Completed);
-            this._socketReceiveArgs.UserToken = new AsyncUserToken(this._socket);
+            this._socketReceiveArgs = CreateSocketAsync(new AsyncUserToken(this._socket), bufferSize, this.IO_Completed);
             this._autoConnectEvent = new AutoResetEvent(false);
             this._autoSendEvent = new AutoResetEvent(false);
-            this._sendingQueue = new BlockingCollection<INetPacketStream>();
-            this._receivingQueue = new BlockingCollection<INetPacketStream>();
+            this._sendingQueue = new BlockingCollection<byte[]>();
+            this._receivingQueue = new BlockingCollection<byte[]>();
             this._sendingQueueWorker = new Task(this.ProcessSendingQueue);
             this._receivingQueueWorker = new Task(this.ProcessReceiveQueue);
         }
@@ -129,7 +128,7 @@ namespace Ether.Network.Client
             if (!this.IsConnected)
                 throw new SocketException();
 
-            this._sendingQueue.Add(packet);
+            this._sendingQueue.Add(packet.Buffer);
         }
 
         /// <summary>
@@ -168,16 +167,14 @@ namespace Ether.Network.Client
         {
             while (true)
             {
-                NetPacketBase packet = this._sendingQueue.Take();
+                byte[] packetBuffer = this._sendingQueue.Take();
 
-                if (packet != null)
+                if (packetBuffer != null)
                 {
-                    byte[] buffer = packet.Buffer;
-
-                    if (buffer.Length <= 0)
+                    if (packetBuffer.Length <= 0)
                         continue;
 
-                    this._socketSendArgs.SetBuffer(buffer, 0, buffer.Length);
+                    this._socketSendArgs.SetBuffer(packetBuffer, 0, packetBuffer.Length);
                     this._socket.SendAsync(this._socketSendArgs);
                     this._autoSendEvent.WaitOne();
                 }
@@ -191,12 +188,12 @@ namespace Ether.Network.Client
         {
             while (true)
             {
-                var receivedMessage = this._receivingQueue.Take();
+                var buffer = this._receivingQueue.Take();
 
-                if (receivedMessage != null)
+                if (buffer != null)
                 {
-                    //this.HandleMessage(receivedMessage);
-                    //receivedMessage.Dispose();
+                    using (var packet = new NetPacketStream(buffer))
+                        this.HandleMessage(packet);
                 }
             }
         }
@@ -242,6 +239,7 @@ namespace Ether.Network.Client
 
             if (token.MessageSize == null)
             {
+                // Read header
                 int headerSize = this.PacketProcessor.HeaderSize;
 
                 if (totalReceivedDataSize > headerSize)

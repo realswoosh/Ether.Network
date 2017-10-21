@@ -54,7 +54,7 @@ namespace Ether.Network.Packets
         private new byte[] GetBuffer()
         {
 #if NET45 || NET451
-            return this.MemoryStream.GetBuffer();
+            return base.GetBuffer();
 #else
             if (this.TryGetBuffer(out ArraySegment<byte> buffer))
                 return buffer.ToArray();

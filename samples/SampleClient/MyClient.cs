@@ -3,6 +3,7 @@ using System;
 using Ether.Network.Packets;
 using System.Net.Sockets;
 using Ether.Network.Client;
+using Ether.Network.Core;
 
 namespace SampleClient
 {
@@ -23,7 +24,7 @@ namespace SampleClient
         /// Handles incoming messages.
         /// </summary>
         /// <param name="packet"></param>
-        protected override void HandleMessage(NetPacketBase packet)
+        protected override void HandleMessage(INetPacketStream packet)
         {
             var response = packet.Read<string>();
             Console.WriteLine("-> Server response: {0}", response);
@@ -32,7 +33,7 @@ namespace SampleClient
             {
                 newPacket.Write(response);
 
-                this.Send(newPacket);
+                //this.Send(newPacket);
             }
 
         }
