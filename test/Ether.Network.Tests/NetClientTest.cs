@@ -14,7 +14,6 @@ namespace Ether.Network.Tests
             var client = new MyClient("127.0.0.1", 4444, 512);
 
             client.Connect();
-            //await this.DelayAction(5, 100, () => !client.IsConnected);
 
             return client;
         }

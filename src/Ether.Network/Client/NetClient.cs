@@ -28,8 +28,8 @@ namespace Ether.Network.Client
         private readonly SocketAsyncEventArgs _socketSendArgs;
         private readonly AutoResetEvent _autoConnectEvent;
         private readonly AutoResetEvent _autoSendEvent;
-        private readonly BlockingCollection<NetPacketBase> _sendingQueue;
-        private readonly BlockingCollection<byte[]> _receivingQueue;
+        private readonly BlockingCollection<INetPacketStream> _sendingQueue;
+        private readonly BlockingCollection<INetPacketStream> _receivingQueue;
         private readonly Task _sendingQueueWorker;
         private readonly Task _receivingQueueWorker;
 
@@ -71,8 +71,8 @@ namespace Ether.Network.Client
             this._socketReceiveArgs.UserToken = new AsyncUserToken(this._socket);
             this._autoConnectEvent = new AutoResetEvent(false);
             this._autoSendEvent = new AutoResetEvent(false);
-            this._sendingQueue = new BlockingCollection<NetPacketBase>();
-            this._receivingQueue = new BlockingCollection<byte[]>();
+            this._sendingQueue = new BlockingCollection<INetPacketStream>();
+            this._receivingQueue = new BlockingCollection<INetPacketStream>();
             this._sendingQueueWorker = new Task(this.ProcessSendingQueue);
             this._receivingQueueWorker = new Task(this.ProcessReceiveQueue);
         }
@@ -124,7 +124,7 @@ namespace Ether.Network.Client
         /// Sends a packet through the network.
         /// </summary>
         /// <param name="packet"></param>
-        public void Send(NetPacketBase packet)
+        public void Send(INetPacketStream packet)
         {
             if (!this.IsConnected)
                 throw new SocketException();
@@ -136,7 +136,7 @@ namespace Ether.Network.Client
         /// Triggered when the <see cref="NetClient"/> receives a packet.
         /// </summary>
         /// <param name="packet"></param>
-        protected abstract void HandleMessage(NetPacketBase packet);
+        protected abstract void HandleMessage(INetPacketStream packet);
 
         /// <summary>
         /// Triggered when the client is connected to the remote end point.

@@ -32,6 +32,6 @@ namespace Ether.Network.Core
         /// Sends packets to the remote server.
         /// </summary>
         /// <param name="packet"></param>
-        void Send(NetPacketBase packet);
+        void Send(INetPacketStream packet);
     }
 }
