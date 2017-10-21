@@ -20,6 +20,7 @@
 ### Fix
 
 - Improve receive process on `NetClient`.
+- Fix disconnect process on `NetClient`.
 
 ### Removed
 

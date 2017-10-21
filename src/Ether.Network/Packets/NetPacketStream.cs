@@ -7,7 +7,7 @@ namespace Ether.Network.Packets
 {
     public class NetPacketStream : MemoryStream, INetPacketStream
     {
-        private readonly PacketStateType _type;
+        private readonly PacketStateType _state;
         private readonly BinaryReader _memoryReader;
         private readonly BinaryWriter _memoryWriter;
 
@@ -27,7 +27,7 @@ namespace Ether.Network.Packets
         public NetPacketStream()
         {
             this._memoryWriter = new BinaryWriter(this);
-            this._type = PacketStateType.Write;
+            this._state = PacketStateType.Write;
         }
 
         /// <summary>
@@ -38,17 +38,66 @@ namespace Ether.Network.Packets
             : base(buffer)
         {
             this._memoryReader = new BinaryReader(this);
-            this._type = PacketStateType.Read;
+            this._state = PacketStateType.Read;
         }
 
-        public new T Read<T>()
+        /// <summary>
+        /// Reads a T value from the packet.
+        /// </summary>
+        /// <typeparam name="T">Value type.</typeparam>
+        /// <returns>Value.</returns>
+        public virtual T Read<T>()
         {
-            throw new NotImplementedException();
+            if (this._state != PacketStateType.Read)
+                throw new InvalidOperationException("Packet is in write-only mode.");
+
+            var type = typeof(T);
+
+            if (NetPacketMethods.ReadMethods.ContainsKey(type))
+                return (T)NetPacketMethods.ReadMethods[type](this._memoryReader);
+
+            return default(T);
         }
 
+        /// <summary>
+        /// Reads an array of T value from the packet.
+        /// </summary>
+        /// <typeparam name="T">Value type.</typeparam>
+        /// <param name="amount">Amount to read.</param>
+        /// <returns></returns>
+        public virtual T[] Read<T>(int amount)
+        {
+            if (this._state != PacketStateType.Read)
+                throw new InvalidOperationException("Packet is in write-only mode.");
+
+            var array = new T[amount];
+            var type = typeof(T);
+
+            if (type == typeof(byte))
+                array = this._memoryReader.ReadBytes(amount) as T[];
+            else if (NetPacketMethods.ReadMethods.ContainsKey(type))
+            {
+                for (int i = 0; i < amount; i++)
+                    array[i] = this.Read<T>();
+            }
+
+            return array;
+        }
+
+        /// <summary>
+        /// Writes a T value in the packet.
+        /// </summary>
+        /// <typeparam name="T">Value type.</typeparam>
+        /// <param name="value">Value.</param>
         public new void Write<T>(T value)
         {
-            throw new NotImplementedException();
+            if (this._state != PacketStateType.Write)
+                throw new InvalidOperationException("Packet is in read-only mode.");
+
+            var type = typeof(T);
+
+            if (NetPacketMethods.WriteMethods.ContainsKey(type))
+                NetPacketMethods.WriteMethods[type](this._memoryWriter, value);
         }
 
         private new byte[] GetBuffer()
@@ -69,11 +118,11 @@ namespace Ether.Network.Packets
         /// <param name="disposing"></param>
         protected override void Dispose(bool disposing)
         {
-            if (disposing)
-            {
-                this._memoryReader.Dispose();
-                this._memoryWriter.Dispose();
-            }
+            //if (disposing)
+            //{
+            //    this._memoryReader?.Dispose();
+            //    this._memoryWriter?.Dispose();
+            //}
 
             base.Dispose(disposing);
         }

@@ -27,16 +27,19 @@ namespace SampleClient
         protected override void HandleMessage(INetPacketStream packet)
         {
             var response = packet.Read<string>();
-            Console.WriteLine("-> Server response: {0}", response);
+            Console.WriteLine($"-> Server response: '{response}'");
+
+            string pak = $"Request #{i++}";
 
             using (var newPacket = new NetPacket())
             {
-                newPacket.Write(response);
+                newPacket.Write(pak);
 
-                //this.Send(newPacket);
+                this.Send(newPacket);
             }
 
         }
+        static int i = 0;
 
         /// <summary>
         /// Triggered when connected to the server.

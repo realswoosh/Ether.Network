@@ -5,7 +5,7 @@ namespace Ether.Network.Core
     /// <summary>
     /// NetServer interface.
     /// </summary>
-    public interface INetServer
+    public interface INetServer : IDisposable
     {
         /// <summary>
         /// Gets the <see cref="INetServer"/> running state.

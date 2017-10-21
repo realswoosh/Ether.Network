@@ -15,13 +15,11 @@ namespace Ether.Network.Client
     /// <summary>
     /// Managed TCP client.
     /// </summary>
-    public abstract class NetClient : INetClient
+    public abstract class NetClient : INetClient, IDisposable
     {
         private readonly static IPacketProcessor BasePacketProcessor = new NetPacketProcessor();
 
         private readonly Guid _id;
-        private readonly string _host;
-        private readonly int _port;
         private readonly IPEndPoint _ipEndPoint;
         private readonly Socket _socket;
         private readonly SocketAsyncEventArgs _socketReceiveArgs;
@@ -62,9 +60,7 @@ namespace Ether.Network.Client
         protected NetClient(string host, int port, int bufferSize)
         {
             this._id = Guid.NewGuid();
-            this._host = host;
-            this._port = port;
-            this._ipEndPoint = NetUtils.CreateIpEndPoint(this._host, this._port);
+            this._ipEndPoint = NetUtils.CreateIpEndPoint(host, port);
             this._socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this._socketSendArgs = CreateSocketAsync(this.Socket, -1, this.IO_Completed);
             this._socketReceiveArgs = CreateSocketAsync(new AsyncUserToken(this._socket), bufferSize, this.IO_Completed);
@@ -154,13 +150,6 @@ namespace Ether.Network.Client
         protected abstract void OnSocketError(SocketError socketError);
 
         /// <summary>
-        /// Split an incoming buffer from the network in a collection of <see cref="NetPacketBase"/>.
-        /// </summary>
-        /// <param name="buffer">Incoming data</param>
-        /// <returns></returns>
-        protected virtual IReadOnlyCollection<NetPacketBase> SplitPackets(byte[] buffer) => NetPacket.Split(buffer);
-
-        /// <summary>
         /// Sends the packets in the sending queue.
         /// </summary>
         private void ProcessSendingQueue()
@@ -202,8 +191,6 @@ namespace Ether.Network.Client
         {
             if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
             {
-                Console.WriteLine("Processing receive");
-
                 var token = e.UserToken as AsyncUserToken;
 
                 ProcessReceivedData(token.DataStartOffset, token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred, 0, token, e);
@@ -248,7 +235,7 @@ namespace Ether.Network.Client
                     Buffer.BlockCopy(e.Buffer, dataStartOffset, headerData, 0, headerSize);
                     var messageSize = this.PacketProcessor.GetLength(headerData);
 
-                    token.MessageSize = messageSize;
+                    token.MessageSize = messageSize - headerSize;
                     token.DataStartOffset = dataStartOffset + headerSize;
 
                     ProcessReceivedData(token.DataStartOffset, totalReceivedDataSize, alreadyProcessedDataSize + headerSize, token, e);

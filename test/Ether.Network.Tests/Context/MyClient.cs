@@ -2,6 +2,7 @@
 using System.Net.Sockets;
 using Ether.Network.Packets;
 using Ether.Network.Client;
+using Ether.Network.Core;
 
 namespace Ether.Network.Tests.Context
 {
@@ -12,7 +13,7 @@ namespace Ether.Network.Tests.Context
         {
         }
 
-        protected override void HandleMessage(NetPacketBase packet)
+        protected override void HandleMessage(INetPacketStream packet)
         {
             var header = packet.Read<int>();
 

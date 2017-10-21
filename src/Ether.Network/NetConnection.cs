@@ -1,4 +1,4 @@
-﻿using Ether.Network.Packets;
+﻿using Ether.Network.Core;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
@@ -18,7 +18,7 @@ namespace Ether.Network
         /// <summary>
         /// Gets the generated unique Id of the connection.
         /// </summary>
-        public Guid Id { get; protected set; }
+        public Guid Id { get; private set; }
 
         /// <summary>
         /// Gets the connection socket.
@@ -48,13 +48,13 @@ namespace Ether.Network
         /// Handle packets.
         /// </summary>
         /// <param name="packet">Packet recieved.</param>
-        public abstract void HandleMessage(NetPacketBase packet);
+        public abstract void HandleMessage(INetPacketStream packet);
 
         /// <summary>
         /// Send a packet to this client.
         /// </summary>
         /// <param name="packet"></param>
-        public void Send(NetPacketBase packet)
+        public void Send(INetPacketStream packet)
         {
             this.SendAction?.Invoke(this, packet.Buffer);
         }
@@ -64,7 +64,7 @@ namespace Ether.Network
         /// </summary>
         /// <param name="destClient">Destination client</param>
         /// <param name="packet">Packet to send</param>
-        public static void SendTo(NetConnection destClient, NetPacketBase packet)
+        public static void SendTo(NetConnection destClient, INetPacketStream packet)
         {
             destClient.Send(packet);
         }
@@ -74,7 +74,7 @@ namespace Ether.Network
         /// </summary>
         /// <param name="clients">Clients</param>
         /// <param name="packet">Packet to send</param>
-        public static void SendTo(ICollection<NetConnection> clients, NetPacketBase packet)
+        public static void SendTo(IEnumerable<NetConnection> clients, INetPacketStream packet)
         {
             foreach (var client in clients)
                 client.Send(packet);

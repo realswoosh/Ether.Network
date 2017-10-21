@@ -1,6 +1,7 @@
 ﻿using Ether.Network;
 using System;
 using Ether.Network.Packets;
+using Ether.Network.Core;
 
 namespace SampleServer
 {
@@ -23,7 +24,7 @@ namespace SampleServer
         /// Receive messages from the client.
         /// </summary>
         /// <param name="packet"></param>
-        public override void HandleMessage(NetPacketBase packet)
+        public override void HandleMessage(INetPacketStream packet)
         {
             string value = packet.Read<string>();
 

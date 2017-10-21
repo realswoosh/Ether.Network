@@ -1,4 +1,5 @@
-﻿using Ether.Network.Packets;
+﻿using Ether.Network.Core;
+using Ether.Network.Packets;
 
 namespace Ether.Network.Tests.Context
 {
@@ -15,7 +16,7 @@ namespace Ether.Network.Tests.Context
             }
         }
 
-        public override void HandleMessage(NetPacketBase packet)
+        public override void HandleMessage(INetPacketStream packet)
         {
         }
     }

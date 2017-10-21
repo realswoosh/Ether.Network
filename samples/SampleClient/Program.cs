@@ -7,7 +7,7 @@ namespace SampleClient
     {
         static void Main(string[] args)
         {
-            var client = new MyClient("127.0.0.1", 8888, 4096);
+            var client = new MyClient("127.0.0.1", 4444, 512);
             client.Connect();
 
             Console.WriteLine("Enter a message and press enter...");

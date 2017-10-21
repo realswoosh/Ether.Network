@@ -1,6 +1,8 @@
-﻿namespace Ether.Network.Core
+﻿using System;
+
+namespace Ether.Network.Core
 {
-    public interface INetPacketStream
+    public interface INetPacketStream : IDisposable
     {
         int Size { get; }
 
@@ -9,6 +11,8 @@
         byte[] Buffer { get; }
 
         T Read<T>();
+
+        T[] Read<T>(int amount);
 
         void Write<T>(T value);
     }

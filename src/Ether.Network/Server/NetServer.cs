@@ -1,6 +1,5 @@
 ﻿using Ether.Network.Core;
 using Ether.Network.Exceptions;
-using Ether.Network.Packets;
 using Ether.Network.Utils;
 using System;
 using System.Collections.Concurrent;
@@ -23,8 +22,8 @@ namespace Ether.Network.Server
         private readonly ConcurrentDictionary<Guid, T> _clients;
         private readonly ConcurrentQueue<PacketData> _messageQueue;
         private readonly ManualResetEvent _resetEvent;
-        private readonly AutoResetEvent _sendEvent;
-        private readonly AutoResetEvent _sendQueueNotifier;
+        private readonly AutoResetEvent _autoSendEvent;
+        private readonly AutoResetEvent _autoSendQueueNotifier;
         private readonly SocketAsyncEventArgs _acceptArgs;
 
         private bool _isRunning;
@@ -61,8 +60,8 @@ namespace Ether.Network.Server
             this._clients = new ConcurrentDictionary<Guid, T>();
             this._messageQueue = new ConcurrentQueue<PacketData>();
             this._resetEvent = new ManualResetEvent(false);
-            this._sendEvent = new AutoResetEvent(false);
-            this._sendQueueNotifier = new AutoResetEvent(false);
+            this._autoSendEvent = new AutoResetEvent(false);
+            this._autoSendQueueNotifier = new AutoResetEvent(false);
             this._isRunning = false;
             this._acceptArgs = new SocketAsyncEventArgs();
             this._acceptArgs.Completed += this.IO_Completed;
@@ -163,16 +162,6 @@ namespace Ether.Network.Server
         protected abstract void OnError(Exception exception);
 
         /// <summary>
-        /// Split an incoming network buffer.
-        /// </summary>
-        /// <param name="buffer">Incoming data buffer</param>
-        /// <returns>Readonly collection of <see cref="NetPacketBase"/></returns>
-        protected virtual IReadOnlyCollection<NetPacketBase> SplitPackets(byte[] buffer)
-        {
-            return NetPacket.Split(buffer);
-        }
-
-        /// <summary>
         /// Starts the accept connection async operation.
         /// </summary>
         private void StartAccept()
@@ -239,20 +228,20 @@ namespace Ether.Network.Server
         /// <param name="e"></param>
         private void DispatchPackets(NetConnection netConnection, SocketAsyncEventArgs e)
         {
-            byte[] buffer = NetUtils.GetPacketBuffer(e.Buffer, e.Offset, e.BytesTransferred);
-            IReadOnlyCollection<NetPacketBase> packets = this.SplitPackets(buffer);
+            //byte[] buffer = NetUtils.GetPacketBuffer(e.Buffer, e.Offset, e.BytesTransferred);
+            //IReadOnlyCollection<INetPacketStream> packets = this.SplitPackets(buffer);
 
-            foreach (var packet in packets)
-            {
-                try
-                {
-                    netConnection.HandleMessage(packet);
-                }
-                catch (Exception exception)
-                {
-                    this.OnError(exception);
-                }
-            }
+            //foreach (var packet in packets)
+            //{
+            //    try
+            //    {
+            //        netConnection.HandleMessage(packet);
+            //    }
+            //    catch (Exception exception)
+            //    {
+            //        this.OnError(exception);
+            //    }
+            //}
         }
 
         /// <summary>
@@ -264,7 +253,7 @@ namespace Ether.Network.Server
         {
             var newPacket = new PacketData(sender, buffer);
             this._messageQueue.Enqueue(newPacket);
-            this._sendQueueNotifier.Set();
+            this._autoSendQueueNotifier.Set();
         }
 
         /// <summary>
@@ -274,7 +263,7 @@ namespace Ether.Network.Server
         {
             while (true)
             {
-                this._sendQueueNotifier.WaitOne();
+                this._autoSendQueueNotifier.WaitOne();
 
                 if (this._messageQueue.TryDequeue(out PacketData packet))
                 {
@@ -299,7 +288,7 @@ namespace Ether.Network.Server
             }
             else
             {
-                this._sendEvent.WaitOne();
+                this._autoSendEvent.WaitOne();
                 this.Send(packet);
             }
         }
@@ -311,7 +300,7 @@ namespace Ether.Network.Server
         private void ProcessSend(SocketAsyncEventArgs e)
         {
             this._writePool.Push(e);
-            this._sendEvent.Set();
+            this._autoSendEvent.Set();
         }
 
         /// <summary>
