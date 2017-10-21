@@ -1,7 +1,7 @@
 ﻿using Ether.Network.Core;
 using Ether.Network.Packets;
+using Ether.Network.Tests.Helpers;
 using System;
-using System.Collections.Generic;
 using System.Text;
 using Xunit;
 
@@ -13,7 +13,7 @@ namespace Ether.Network.Tests
         private static readonly short ShortValue = 30546;
         private static readonly int Int32Value = 452674652;
         private static readonly long Int64Value = 3465479740298342;
-        private static readonly string StringValue = "Hello world! This is a string unit test!";
+        private static readonly string StringValue = Helper.GenerateRandomString(543);
         private static readonly byte[] ByteArray = BitConverter.GetBytes(ByteValue);
         private static readonly byte[] ShortArray = BitConverter.GetBytes(ShortValue);
         private static readonly byte[] Int32Array = BitConverter.GetBytes(Int32Value);

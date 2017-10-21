@@ -1,10 +1,8 @@
 ﻿using Ether.Network.Core;
-using Ether.Network.Exceptions;
 using Ether.Network.Packets;
 using Ether.Network.Utils;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -17,7 +15,7 @@ namespace Ether.Network.Client
     /// </summary>
     public abstract class NetClient : INetClient, IDisposable
     {
-        private readonly static IPacketProcessor BasePacketProcessor = new NetPacketProcessor();
+        private readonly static IPacketProcessor<NetPacket> BasePacketProcessor = new NetPacketProcessor();
 
         private readonly Guid _id;
         private readonly IPEndPoint _ipEndPoint;
@@ -44,7 +42,7 @@ namespace Ether.Network.Client
         /// <summary>
         /// Gets the packet processor.
         /// </summary>
-        protected IPacketProcessor PacketProcessor => BasePacketProcessor;
+        protected IPacketProcessor<NetPacket> PacketProcessor => BasePacketProcessor;
 
         /// <summary>
         /// Gets the <see cref="NetClient"/> connected state.
@@ -80,9 +78,11 @@ namespace Ether.Network.Client
             if (this.IsConnected)
                 throw new InvalidOperationException("Client is already connected to remote.");
 
-            var connectSocket = new SocketAsyncEventArgs();
-            connectSocket.RemoteEndPoint = this._ipEndPoint;
-            connectSocket.UserToken = this._socket;
+            var connectSocket = new SocketAsyncEventArgs
+            {
+                RemoteEndPoint = this._ipEndPoint,
+                UserToken = this._socket
+            };
             connectSocket.Completed += this.IO_Completed;
 
             this._socket.ConnectAsync(connectSocket);
@@ -181,12 +181,16 @@ namespace Ether.Network.Client
 
                 if (buffer != null)
                 {
-                    using (var packet = new NetPacketStream(buffer))
+                    using (var packet = this.PacketProcessor.CreatePacket(buffer))
                         this.HandleMessage(packet);
                 }
             }
         }
 
+        /// <summary>
+        /// Process receieve.
+        /// </summary>
+        /// <param name="e"></param>
         private void ProcessReceive(SocketAsyncEventArgs e)
         {
             if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
@@ -219,6 +223,14 @@ namespace Ether.Network.Client
             }
         }
 
+        /// <summary>
+        /// Process receive data.
+        /// </summary>
+        /// <param name="dataStartOffset"></param>
+        /// <param name="totalReceivedDataSize"></param>
+        /// <param name="alreadyProcessedDataSize"></param>
+        /// <param name="token"></param>
+        /// <param name="e"></param>
         private void ProcessReceivedData(int dataStartOffset, int totalReceivedDataSize, int alreadyProcessedDataSize, AsyncUserToken token, SocketAsyncEventArgs e)
         {
             if (alreadyProcessedDataSize >= totalReceivedDataSize)
