@@ -28,9 +28,7 @@ namespace Ether.Network.Client
 
             try
             {
-#if !NETSTANDARD1_3
                 this.Socket.Close();
-#endif
             }
             catch (Exception)
             { }

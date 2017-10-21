@@ -6,7 +6,7 @@
     <AssemblyTitle>Ether.Network</AssemblyTitle>
     <VersionPrefix>2.1.0</VersionPrefix>
     <Authors>Filipe Gomes Peixoto</Authors>
-    <TargetFrameworks>netstandard2.0;netstandard1.3;net45</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net45;net46</TargetFrameworks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyName>Ether.Network</AssemblyName>
     <PackageId>Ether.Network</PackageId>
@@ -24,13 +24,8 @@
     <RepositoryType>Git</RepositoryType>
   </PropertyGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.3' ">
-    <PackageReference Include="System.Threading.Thread" Version="4.3.0" />
-    <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
-  </ItemGroup>
-
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
-    <Reference Include="System" />
-    <Reference Include="Microsoft.CSharp" />
-  </ItemGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard2.0|AnyCPU'">
+    <DocumentationFile />
+    <Optimize>false</Optimize>
+  </PropertyGroup>
 </Project>
