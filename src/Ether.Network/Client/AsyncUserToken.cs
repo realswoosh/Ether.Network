@@ -23,14 +23,16 @@ namespace Ether.Network.Client
             {
                 this.Socket.Shutdown(SocketShutdown.Send);
             }
-            catch (Exception)
+            catch
             { }
 
             try
             {
+#if !NETSTANDARD1_3
                 this.Socket.Close();
+#endif
             }
-            catch (Exception)
+            catch
             { }
         }
 

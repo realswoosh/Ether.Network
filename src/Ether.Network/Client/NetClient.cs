@@ -107,7 +107,9 @@ namespace Ether.Network.Client
         {
             if (this.IsConnected)
             {
+#if !NETSTANDARD1_3
                 this._socket.Close();
+#endif
                 this._socket.Shutdown(SocketShutdown.Both);
                 this._socket.Dispose();
             }
