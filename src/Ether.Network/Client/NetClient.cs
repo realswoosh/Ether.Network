@@ -164,8 +164,9 @@ namespace Ether.Network.Client
                         continue;
 
                     this._socketSendArgs.SetBuffer(packetBuffer, 0, packetBuffer.Length);
-                    this._socket.SendAsync(this._socketSendArgs);
-                    this._autoSendEvent.WaitOne();
+
+                    if (this._socket.SendAsync(this._socketSendArgs))
+                        this._autoSendEvent.WaitOne();
                 }
             }
         }
@@ -281,22 +282,25 @@ namespace Ether.Network.Client
             if (sender == null)
                 throw new ArgumentNullException(nameof(sender));
 
-            switch (e.LastOperation)
+            if (e.SocketError == SocketError.Success)
             {
-                case SocketAsyncOperation.Connect:
-                    this._autoConnectEvent.Set();
-                    this.OnConnected();
-                    break;
-                case SocketAsyncOperation.Receive:
-                    this.ProcessReceive(e);
-                    break;
-                case SocketAsyncOperation.Send:
-                    this._autoSendEvent.Set();
-                    break;
-                case SocketAsyncOperation.Disconnect:
-                    this.OnDisconnected();
-                    break;
-                default: throw new InvalidOperationException("Unexpected socket async operation.");
+                switch (e.LastOperation)
+                {
+                    case SocketAsyncOperation.Connect:
+                        this._autoConnectEvent.Set();
+                        this.OnConnected();
+                        break;
+                    case SocketAsyncOperation.Receive:
+                        this.ProcessReceive(e);
+                        break;
+                    case SocketAsyncOperation.Send:
+                        this._autoSendEvent.Set();
+                        break;
+                    case SocketAsyncOperation.Disconnect:
+                        this.OnDisconnected();
+                        break;
+                    default: throw new InvalidOperationException("Unexpected socket async operation.");
+                }
             }
         }
 
