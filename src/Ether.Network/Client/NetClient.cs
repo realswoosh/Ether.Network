@@ -15,7 +15,7 @@ namespace Ether.Network.Client
     /// </summary>
     public abstract class NetClient : INetClient, IDisposable
     {
-        private readonly static IPacketProcessor<NetPacket> BasePacketProcessor = new NetPacketProcessor();
+        private readonly static IPacketProcessor DefaultPacketProcessor = new NetPacketProcessor();
 
         private readonly Guid _id;
         private readonly IPEndPoint _ipEndPoint;
@@ -42,7 +42,7 @@ namespace Ether.Network.Client
         /// <summary>
         /// Gets the packet processor.
         /// </summary>
-        protected IPacketProcessor<NetPacket> PacketProcessor => BasePacketProcessor;
+        protected virtual IPacketProcessor PacketProcessor => DefaultPacketProcessor;
 
         /// <summary>
         /// Gets the <see cref="NetClient"/> connected state.

@@ -3,12 +3,12 @@ using System.IO;
 
 namespace Ether.Network.Packets
 {
-    internal sealed class NetPacketProcessor : IPacketProcessor<NetPacket>
+    internal sealed class NetPacketProcessor : IPacketProcessor
     {
         /// <summary>
         /// Gets the <see cref="NetPacket"/> header size.
         /// </summary>
-        public int HeaderSize => 4;
+        public int HeaderSize => sizeof(int);
 
         /// <summary>
         /// Gets the <see cref="NetPacket"/> length size.
@@ -31,9 +31,6 @@ namespace Ether.Network.Packets
         /// </summary>
         /// <param name="buffer">Input buffer</param>
         /// <returns></returns>
-        public NetPacket CreatePacket(byte[] buffer)
-        {
-            return new NetPacket(buffer);
-        }
+        public INetPacketStream CreatePacket(byte[] buffer) => new NetPacket(buffer);
     }
 }

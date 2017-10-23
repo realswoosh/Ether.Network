@@ -7,8 +7,37 @@ using Ether.Network.Core;
 
 namespace SampleClient
 {
+    class MyPacket : NetPacketStream
+    {
+        public MyPacket()
+        {
+        }
+
+        public MyPacket(byte[] buffer)
+            : base(buffer)
+        {
+        }
+    }
+
+    class PacketProcessor : IPacketProcessor
+    {
+        public int HeaderSize => throw new NotImplementedException();
+
+        public INetPacketStream CreatePacket(byte[] buffer)
+        {
+            return new MyPacket();
+        }
+
+        public int GetLength(byte[] buffer)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     internal sealed class MyClient : NetClient
     {
+        protected override IPacketProcessor PacketProcessor => new PacketProcessor();
+
         /// <summary>
         /// Creates a new <see cref="MyClient"/>.
         /// </summary>

@@ -1,9 +1,9 @@
 ﻿namespace Ether.Network.Core
 {
     /// <summary>
-    /// Defines the behavior of a <see cref="IPacketProcessor{T}"/>.
+    /// Defines the behavior of a <see cref="IPacketProcessor"/>.
     /// </summary>
-    public interface IPacketProcessor<T> where T : class, INetPacketStream
+    public interface IPacketProcessor
     {
         /// <summary>
         /// Gets the packet header size.
@@ -22,6 +22,6 @@
         /// </summary>
         /// <param name="buffer">Input buffer</param>
         /// <returns></returns>
-        T CreatePacket(byte[] buffer);
+        INetPacketStream CreatePacket(byte[] buffer);
     }
 }
