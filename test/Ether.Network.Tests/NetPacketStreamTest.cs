@@ -14,7 +14,7 @@ namespace Ether.Network.Tests
         private static readonly int Int32Value = 452674652;
         private static readonly long Int64Value = 3465479740298342;
         private static readonly string StringValue = Helper.GenerateRandomString(543);
-        private static readonly byte[] ByteArray = BitConverter.GetBytes(ByteValue);
+        private static readonly byte[] ByteArray = new byte[] { ByteValue };
         private static readonly byte[] ShortArray = BitConverter.GetBytes(ShortValue);
         private static readonly byte[] Int32Array = BitConverter.GetBytes(Int32Value);
         private static readonly byte[] Int64Array = BitConverter.GetBytes(Int64Value);
@@ -23,45 +23,25 @@ namespace Ether.Network.Tests
         [Fact]
         public void ReadByte()
         {
-            byte value = 0;
-
-            using (INetPacketStream packetStream = new NetPacketStream(ByteArray))
-                value = packetStream.Read<byte>();
-
-            Assert.Equal(ByteValue, value);
+            this.TestRead<byte>(ByteArray, ByteValue);
         }
 
         [Fact]
         public void ReadInt16()
         {
-            short value = 0;
-
-            using (INetPacketStream packetStream = new NetPacketStream(ShortArray))
-                value = packetStream.Read<short>();
-
-            Assert.Equal(ShortValue, value);
+            this.TestRead<short>(ShortArray, ShortValue);
         }
 
         [Fact]
         public void ReadInt32()
         {
-            int value = 0;
-
-            using (INetPacketStream packetStream = new NetPacketStream(Int32Array))
-                value = packetStream.Read<int>();
-
-            Assert.Equal(Int32Value, value);
+            this.TestRead<int>(Int32Array, Int32Value);
         }
 
         [Fact]
         public void ReadInt64()
         {
-            long value = 0;
-
-            using (INetPacketStream packetStream = new NetPacketStream(Int64Array))
-                value = packetStream.Read<long>();
-
-            Assert.Equal(Int64Value, value);
+            this.TestRead<long>(Int64Array, Int64Value);
         }
 
         [Fact]
@@ -75,6 +55,73 @@ namespace Ether.Network.Tests
             string convertedValue = Encoding.ASCII.GetString(value);
 
             Assert.Equal(StringValue, convertedValue);
+        }
+
+        [Fact]
+        public void WriteByte()
+        {
+            this.TestWrite<byte>(ByteArray, ByteValue);
+        }
+
+        [Fact]
+        public void WriteShort()
+        {
+            this.TestWrite<short>(ShortArray, ShortValue);
+        }
+
+        [Fact]
+        public void WriteInt32()
+        {
+            this.TestWrite<int>(Int32Array, Int32Value);
+        }
+
+        [Fact]
+        public void WriteLong()
+        {
+            this.TestWrite<long>(Int64Array, Int64Value);
+        }
+
+        [Fact]
+        public void WriteString()
+        {
+            string readString = null;
+            byte[] packetStreamBuffer = null;
+
+            using (INetPacketStream packetStream = new NetPacketStream())
+            {
+                packetStream.Write(StringValue);
+                packetStreamBuffer = packetStream.Buffer;
+            }
+
+            using (INetPacketStream readPacketStream = new NetPacketStream(packetStreamBuffer))
+            {
+                readString = readPacketStream.Read<string>();
+            }
+
+            Assert.Equal(StringValue, readString);
+        }
+
+        private void TestRead<T>(byte[] input, T expected)
+        {
+            T value = default(T);
+
+            using (INetPacketStream packetStream = new NetPacketStream(input))
+                value = packetStream.Read<T>();
+
+            Assert.Equal(expected, value);
+        }
+
+        private void TestWrite<T>(byte[] expected, T value)
+        {
+            byte[] packetStreamBuffer = null;
+
+            using (INetPacketStream packetStream = new NetPacketStream())
+            {
+                packetStream.Write(value);
+                packetStreamBuffer = packetStream.Buffer;
+            }
+
+            Assert.Equal(expected, packetStreamBuffer);
         }
     }
 }
