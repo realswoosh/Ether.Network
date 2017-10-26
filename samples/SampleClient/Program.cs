@@ -30,6 +30,7 @@ namespace SampleClient
                         {
                             packet.Write(input);
 
+                            Console.WriteLine($"Sending input: '{input}' ; packet length: '{packet.Buffer.Length}'");
                             client.Send(packet);
                         }
                     }

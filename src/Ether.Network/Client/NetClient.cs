@@ -15,7 +15,7 @@ namespace Ether.Network.Client
     /// </summary>
     public abstract class NetClient : INetClient, IDisposable
     {
-        private readonly static IPacketProcessor DefaultPacketProcessor = new NetPacketProcessor();
+        private static readonly IPacketProcessor DefaultPacketProcessor = new NetPacketProcessor();
 
         private readonly Guid _id;
         private readonly IPEndPoint _ipEndPoint;
@@ -78,12 +78,8 @@ namespace Ether.Network.Client
             if (this.IsConnected)
                 throw new InvalidOperationException("Client is already connected to remote.");
 
-            var connectSocket = new SocketAsyncEventArgs
-            {
-                RemoteEndPoint = this._ipEndPoint,
-                UserToken = this._socket
-            };
-            connectSocket.Completed += this.IO_Completed;
+            var connectSocket = NetUtils.CreateSocketAsync(this._socket, -1, this.IO_Completed);
+            connectSocket.RemoteEndPoint = this._ipEndPoint;
 
             this._socket.ConnectAsync(connectSocket);
             this._autoConnectEvent.WaitOne();

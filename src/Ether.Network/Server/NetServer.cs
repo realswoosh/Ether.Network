@@ -1,11 +1,13 @@
 ﻿using Ether.Network.Core;
 using Ether.Network.Exceptions;
+using Ether.Network.Packets;
 using Ether.Network.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,12 +19,14 @@ namespace Ether.Network.Server
     /// <typeparam name="T"></typeparam>
     public abstract class NetServer<T> : INetServer, IDisposable where T : NetConnection, new()
     {
+        private static readonly IPacketProcessor DefaultPacketProcessor = new NetPacketProcessor();
         private static readonly string AllInterfaces = "0.0.0.0";
 
         private readonly ManualResetEvent _manualResetEvent;
         private readonly ConcurrentDictionary<Guid, T> _clients;
         private readonly SocketAsyncEventArgs _acceptArgs;
-        
+
+        private bool _isDisposed;
         private SocketAsyncEventArgsPool _readPool;
         private SocketAsyncEventArgsPool _writePool;
 
@@ -36,6 +40,11 @@ namespace Ether.Network.Server
         /// Gets the <see cref="NetServer{T}"/> configuration
         /// </summary>
         protected NetServerConfiguration Configuration { get; }
+
+        /// <summary>
+        /// Gets the packet processor.
+        /// </summary>
+        protected virtual IPacketProcessor PacketProcessor => DefaultPacketProcessor;
 
         /// <summary>
         /// Gets the <see cref="NetServer{T}"/> running state.
@@ -179,24 +188,37 @@ namespace Ether.Network.Server
         /// <param name="e"></param>
         private void ProcessAccept(SocketAsyncEventArgs e)
         {
-            if (e.SocketError == SocketError.Success)
+            try
             {
-                var client = new T();
-                //client.Initialize(e.AcceptSocket, this.SendData);
+                if (e.SocketError == SocketError.Success)
+                {
+                    //var client = new T();
+                    //client.Initialize(e.AcceptSocket, this.SendData);
 
-                if (!this._clients.TryAdd(client.Id, client))
-                    throw new EtherException($"Client {client.Id} already exists in client list.");
+                    //if (!this._clients.TryAdd(client.Id, client))
+                    //    throw new EtherException($"Client {client.Id} already exists in client list.");
 
-                this.OnClientConnected(client);
+                    //this.OnClientConnected(client);
 
-                SocketAsyncEventArgs readArgs = this._readPool.Pop();
-                readArgs.UserToken = client;
+                    SocketAsyncEventArgs readArgs = this._readPool.Pop();
 
-                if (e.AcceptSocket != null && !e.AcceptSocket.ReceiveAsync(readArgs))
-                    this.ProcessReceive(readArgs);
+                    if (readArgs != null)
+                    {
+                        readArgs.UserToken = new AsyncUserToken(e.AcceptSocket);
+
+                        if (!e.AcceptSocket.ReceiveAsync(readArgs))
+                            this.ProcessReceive(readArgs);
+                    }
+                }
             }
-            
-            this.StartAccept(e);
+            catch (Exception exception)
+            {
+                // TODO: handle exception
+            }
+            finally
+            {
+                this.StartAccept(e);
+            }
         }
 
         /// <summary>
@@ -208,12 +230,97 @@ namespace Ether.Network.Server
         }
 
         /// <summary>
-        /// Process the receive async operation on one <see cref="SocketAsyncEventArgs"/>.
+        /// Process receieve.
         /// </summary>
         /// <param name="e"></param>
         private void ProcessReceive(SocketAsyncEventArgs e)
         {
-            
+            if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
+            {
+                var token = e.UserToken as AsyncUserToken;
+
+                ProcessReceivedData(token.DataStartOffset, token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred, 0, token, e);
+
+                token.NextReceiveOffset += e.BytesTransferred;
+
+                if (token.NextReceiveOffset == e.Buffer.Length)
+                {
+                    token.NextReceiveOffset = 0;
+
+                    if (token.DataStartOffset < e.Buffer.Length)
+                    {
+                        var notYesProcessDataSize = e.Buffer.Length - token.DataStartOffset;
+                        Buffer.BlockCopy(e.Buffer, token.DataStartOffset, e.Buffer, 0, notYesProcessDataSize);
+
+                        token.NextReceiveOffset = notYesProcessDataSize;
+                    }
+
+                    token.DataStartOffset = 0;
+                }
+
+                e.SetBuffer(token.NextReceiveOffset, e.Buffer.Length - token.NextReceiveOffset);
+
+                if (!token.Socket.ReceiveAsync(e))
+                    ProcessReceive(e);
+            }
+            else
+            {
+                Console.WriteLine("Disconnected");
+            }
+        }
+
+        /// <summary>
+        /// Process receive data.
+        /// </summary>
+        /// <param name="dataStartOffset"></param>
+        /// <param name="totalReceivedDataSize"></param>
+        /// <param name="alreadyProcessedDataSize"></param>
+        /// <param name="token"></param>
+        /// <param name="e"></param>
+        private void ProcessReceivedData(int dataStartOffset, int totalReceivedDataSize, int alreadyProcessedDataSize, AsyncUserToken token, SocketAsyncEventArgs e)
+        {
+            if (alreadyProcessedDataSize >= totalReceivedDataSize)
+                return;
+
+            if (token.MessageSize == null)
+            {
+                // Read header
+                int headerSize = this.PacketProcessor.HeaderSize;
+
+                if (totalReceivedDataSize > headerSize)
+                {
+                    byte[] headerData = NetUtils.GetPacketBuffer(e.Buffer, dataStartOffset, headerSize);
+                    int messageSize = this.PacketProcessor.GetLength(headerData);
+
+                    token.MessageSize = messageSize - headerSize;
+                    token.DataStartOffset = dataStartOffset + headerSize;
+
+                    this.ProcessReceivedData(token.DataStartOffset, totalReceivedDataSize, alreadyProcessedDataSize + headerSize, token, e);
+                }
+            }
+            else
+            {
+                // Read length
+                var messageSize = token.MessageSize.Value;
+                if (totalReceivedDataSize - alreadyProcessedDataSize >= messageSize)
+                {
+                    byte[] messageData = NetUtils.GetPacketBuffer(e.Buffer, dataStartOffset, messageSize);
+                    
+                    // DEBUG: TODO: remove this and add a receive queue ?
+                    using (var packet = this.PacketProcessor.CreatePacket(messageData))
+                    {
+                        string clientMessage = packet.Read<string>();
+
+                        Console.WriteLine($"Received: '{clientMessage}'");
+                    }
+                    //this._receivingQueue.Add(messageData);
+
+                    token.DataStartOffset = dataStartOffset + messageSize;
+                    token.MessageSize = null;
+
+                    this.ProcessReceivedData(token.DataStartOffset, totalReceivedDataSize, alreadyProcessedDataSize + messageSize, token, e);
+                }
+            }
         }
 
         /// <summary>
@@ -242,18 +349,14 @@ namespace Ether.Network.Server
                     throw new InvalidOperationException("Unexpected SocketAsyncOperation.");
             }
         }
-
-        #region IDisposable Support
-
-        private bool _disposed;
-
+        
         /// <summary>
         /// Dispose the <see cref="NetServer{T}"/> resources.
         /// </summary>
         /// <param name="disposing"></param>
         protected virtual void Dispose(bool disposing)
         {
-            if (!_disposed)
+            if (!_isDisposed)
             {
                 if (disposing)
                 {
@@ -278,7 +381,7 @@ namespace Ether.Network.Server
                     }
                 }
 
-                _disposed = true;
+                _isDisposed = true;
             }
             else
                 throw new ObjectDisposedException(nameof(NetServer<T>));
@@ -292,7 +395,5 @@ namespace Ether.Network.Server
             this.Dispose(true);
             GC.SuppressFinalize(this);
         }
-
-        #endregion
     }
 }

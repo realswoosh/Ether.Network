@@ -38,7 +38,7 @@ namespace Ether.Network.Packets
             long oldPosition = this.Position;
 
             this.Seek(0, SeekOrigin.Begin);
-            this.Write(this.Size - sizeof(int));
+            this.Write(this.Size);
             this.Seek((int)oldPosition, SeekOrigin.Begin);
 
             return base.Buffer;

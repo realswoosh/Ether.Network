@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net.Sockets;
 
-namespace Ether.Network.Client
+namespace Ether.Network
 {
     internal sealed class AsyncUserToken : IDisposable
     {
