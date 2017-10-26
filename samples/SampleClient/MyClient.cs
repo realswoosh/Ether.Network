@@ -1,9 +1,7 @@
-﻿using Ether.Network;
-using System;
-using Ether.Network.Packets;
-using System.Net.Sockets;
-using Ether.Network.Client;
+﻿using Ether.Network.Client;
 using Ether.Network.Core;
+using System;
+using System.Net.Sockets;
 
 namespace SampleClient
 {
@@ -28,18 +26,7 @@ namespace SampleClient
         {
             var response = packet.Read<string>();
             Console.WriteLine($"-> Server response: '{response}'");
-
-            string pak = $"Request #{i++}";
-
-            using (var newPacket = new NetPacket())
-            {
-                newPacket.Write(pak);
-
-                this.Send(newPacket);
-            }
-
         }
-        static int i = 0;
 
         /// <summary>
         /// Triggered when connected to the server.
@@ -57,6 +44,10 @@ namespace SampleClient
             Console.WriteLine("Disconnected");
         }
 
+        /// <summary>
+        /// Triggered when an error occurs.
+        /// </summary>
+        /// <param name="socketError"></param>
         protected override void OnSocketError(SocketError socketError)
         {
             Console.WriteLine("Socket Error: {0}", socketError.ToString());

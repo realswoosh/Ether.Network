@@ -36,14 +36,19 @@ namespace Ether.Network.Utils
             return buffer;
         }
 
-        public static SocketAsyncEventArgs CreateSocket(int bufferSize, EventHandler<SocketAsyncEventArgs> completedAction)
+        public static SocketAsyncEventArgs CreateSocketAsync(object userToken, int bufferSize, EventHandler<SocketAsyncEventArgs> completedAction)
         {
-            var socket = new SocketAsyncEventArgs();
+            var socketAsync = new SocketAsyncEventArgs()
+            {
+                UserToken = userToken
+            };
 
-            socket.Completed += completedAction;
-            socket.SetBuffer(new Byte[bufferSize], 0, bufferSize);
+            socketAsync.Completed += completedAction;
 
-            return socket;
+            if (bufferSize > 0)
+                socketAsync.SetBuffer(new byte[bufferSize], 0, bufferSize);
+
+            return socketAsync;
         }
     }
 }

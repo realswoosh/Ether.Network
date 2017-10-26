@@ -12,7 +12,7 @@ namespace SampleServer
         public SampleServer()
         {
             this.Configuration.Backlog = 100;
-            this.Configuration.Port = 8888;
+            this.Configuration.Port = 4444;
             this.Configuration.MaximumNumberOfConnections = 100;
             this.Configuration.Host = "127.0.0.1";
         }

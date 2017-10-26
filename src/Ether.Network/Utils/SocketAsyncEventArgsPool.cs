@@ -36,6 +36,9 @@ namespace Ether.Network.Utils
         /// <param name="socketAsyncEventArgs"></param>
         public void Push(SocketAsyncEventArgs socketAsyncEventArgs)
         {
+            if (socketAsyncEventArgs == null)
+                throw new ArgumentNullException(nameof(socketAsyncEventArgs));
+
             this._socketPool.Push(socketAsyncEventArgs);
         }
 

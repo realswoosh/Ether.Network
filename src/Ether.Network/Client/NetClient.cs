@@ -60,8 +60,8 @@ namespace Ether.Network.Client
             this._id = Guid.NewGuid();
             this._ipEndPoint = NetUtils.CreateIpEndPoint(host, port);
             this._socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            this._socketSendArgs = CreateSocketAsync(this.Socket, -1, this.IO_Completed);
-            this._socketReceiveArgs = CreateSocketAsync(new AsyncUserToken(this._socket), bufferSize, this.IO_Completed);
+            this._socketSendArgs = NetUtils.CreateSocketAsync(this.Socket, -1, this.IO_Completed);
+            this._socketReceiveArgs = NetUtils.CreateSocketAsync(new AsyncUserToken(this._socket), bufferSize, this.IO_Completed);
             this._autoConnectEvent = new AutoResetEvent(false);
             this._autoSendEvent = new AutoResetEvent(false);
             this._sendingQueue = new BlockingCollection<byte[]>();
@@ -302,25 +302,6 @@ namespace Ether.Network.Client
                     default: throw new InvalidOperationException("Unexpected socket async operation.");
                 }
             }
-        }
-
-        /// <summary>
-        /// Creates a <see cref="SocketAsyncEventArgs"/>.
-        /// </summary>
-        /// <returns></returns>
-        private static SocketAsyncEventArgs CreateSocketAsync(object userToken, int bufferSize, EventHandler<SocketAsyncEventArgs> completedAction)
-        {
-            var socketAsync = new SocketAsyncEventArgs()
-            {
-                UserToken = userToken
-            };
-
-            socketAsync.Completed += completedAction;
-
-            if (bufferSize > 0)
-                socketAsync.SetBuffer(new byte[bufferSize], 0, bufferSize);
-
-            return socketAsync;
         }
 
         /// <summary>

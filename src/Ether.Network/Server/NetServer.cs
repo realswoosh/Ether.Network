@@ -19,31 +19,28 @@ namespace Ether.Network.Server
     {
         private static readonly string AllInterfaces = "0.0.0.0";
 
+        private readonly ManualResetEvent _manualResetEvent;
         private readonly ConcurrentDictionary<Guid, T> _clients;
-        private readonly ConcurrentQueue<PacketData> _messageQueue;
-        private readonly ManualResetEvent _resetEvent;
-        private readonly AutoResetEvent _autoSendEvent;
-        private readonly AutoResetEvent _autoSendQueueNotifier;
         private readonly SocketAsyncEventArgs _acceptArgs;
-
-        private bool _isRunning;
+        
         private SocketAsyncEventArgsPool _readPool;
         private SocketAsyncEventArgsPool _writePool;
+
 
         /// <summary>
         /// Gets the <see cref="NetServer{T}"/> listening socket.
         /// </summary>
-        protected Socket Socket { get; private set; }
+        protected Socket Socket { get; }
 
         /// <summary>
         /// Gets the <see cref="NetServer{T}"/> configuration
         /// </summary>
-        protected NetServerConfiguration Configuration { get; private set; }
+        protected NetServerConfiguration Configuration { get; }
 
         /// <summary>
         /// Gets the <see cref="NetServer{T}"/> running state.
         /// </summary>
-        public bool IsRunning => this._isRunning;
+        public bool IsRunning { get; private set; }
 
         /// <summary>
         /// Gets the connected client.
@@ -58,13 +55,17 @@ namespace Ether.Network.Server
             this.Configuration = new NetServerConfiguration(this);
             this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this._clients = new ConcurrentDictionary<Guid, T>();
-            this._messageQueue = new ConcurrentQueue<PacketData>();
-            this._resetEvent = new ManualResetEvent(false);
-            this._autoSendEvent = new AutoResetEvent(false);
-            this._autoSendQueueNotifier = new AutoResetEvent(false);
-            this._isRunning = false;
-            this._acceptArgs = new SocketAsyncEventArgs();
-            this._acceptArgs.Completed += this.IO_Completed;
+            this._acceptArgs = NetUtils.CreateSocketAsync(null, -1, this.IO_Completed);
+
+            this._manualResetEvent = new ManualResetEvent(false);
+        }
+
+        /// <summary>
+        /// Destroys the <see cref="NetServer{T}"/> instance.
+        /// </summary>
+        ~NetServer()
+        {
+            this.Dispose(false);
         }
 
         /// <summary>
@@ -72,7 +73,7 @@ namespace Ether.Network.Server
         /// </summary>
         public void Start()
         {
-            if (this._isRunning)
+            if (this.IsRunning)
                 throw new InvalidOperationException("Server is already running.");
 
             if (this.Configuration.Port <= 0)
@@ -87,7 +88,7 @@ namespace Ether.Network.Server
                 this._readPool = new SocketAsyncEventArgsPool();
 
                 for (int i = 0; i < this.Configuration.MaximumNumberOfConnections; i++)
-                    this._readPool.Push(NetUtils.CreateSocket(this.Configuration.BufferSize, this.IO_Completed));
+                    this._readPool.Push(NetUtils.CreateSocketAsync(null, this.Configuration.BufferSize, this.IO_Completed));
             }
 
             if (this._writePool == null)
@@ -95,19 +96,16 @@ namespace Ether.Network.Server
                 this._writePool = new SocketAsyncEventArgsPool();
 
                 for (int i = 0; i < this.Configuration.MaximumNumberOfConnections; i++)
-                    this._writePool.Push(NetUtils.CreateSocket(this.Configuration.BufferSize, this.IO_Completed));
+                    this._writePool.Push(NetUtils.CreateSocketAsync(null, this.Configuration.BufferSize, this.IO_Completed));
             }
 
             this.Initialize();
             this.Socket.Bind(new IPEndPoint(address, this.Configuration.Port));
             this.Socket.Listen(this.Configuration.Backlog);
+            this.StartAccept(null);
 
-            Task.Factory.StartNew(this.ProcessSendQueue);
-
-            this.StartAccept();
-
-            this._isRunning = true;
-            this._resetEvent.WaitOne();
+            this.IsRunning = true;
+            this._manualResetEvent.WaitOne();
         }
 
         /// <summary>
@@ -115,10 +113,10 @@ namespace Ether.Network.Server
         /// </summary>
         public void Stop()
         {
-            if (this._isRunning)
+            if (this.IsRunning)
             {
-                this._isRunning = false;
-                this._resetEvent.Set();
+                this.IsRunning = false;
+                this._manualResetEvent.Set();
             }
         }
 
@@ -164,12 +162,15 @@ namespace Ether.Network.Server
         /// <summary>
         /// Starts the accept connection async operation.
         /// </summary>
-        private void StartAccept()
+        private void StartAccept(SocketAsyncEventArgs e)
         {
-            if (this._acceptArgs.AcceptSocket != null)
-                this._acceptArgs.AcceptSocket = null;
-            if (!this.Socket.AcceptAsync(this._acceptArgs))
-                this.ProcessAccept(this._acceptArgs);
+            if (e == null)
+                e = NetUtils.CreateSocketAsync(null, -1, this.IO_Completed);
+            else if (e.AcceptSocket != null)
+                e.AcceptSocket = null;
+
+            if (!this.Socket.AcceptAsync(e))
+                this.ProcessAccept(e);
         }
 
         /// <summary>
@@ -181,7 +182,7 @@ namespace Ether.Network.Server
             if (e.SocketError == SocketError.Success)
             {
                 var client = new T();
-                client.Initialize(e.AcceptSocket, this.SendData);
+                //client.Initialize(e.AcceptSocket, this.SendData);
 
                 if (!this._clients.TryAdd(client.Id, client))
                     throw new EtherException($"Client {client.Id} already exists in client list.");
@@ -194,103 +195,8 @@ namespace Ether.Network.Server
                 if (e.AcceptSocket != null && !e.AcceptSocket.ReceiveAsync(readArgs))
                     this.ProcessReceive(readArgs);
             }
-
-            e.AcceptSocket = null;
-            this.StartAccept();
-        }
-
-        /// <summary>
-        /// Process the receive async operation on one <see cref="SocketAsyncEventArgs"/>.
-        /// </summary>
-        /// <param name="e"></param>
-        private void ProcessReceive(SocketAsyncEventArgs e)
-        {
-            var netConnection = e.UserToken as T;
-
-            if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
-            {
-                this.DispatchPackets(netConnection, e);
-                if (netConnection.Socket != null && !netConnection.Socket.ReceiveAsync(e))
-                    this.ProcessReceive(e);
-            }
-            else
-            {
-                this.DisconnectClient(netConnection.Id);
-                e.UserToken = null;
-                this._readPool.Push(e);
-            }
-        }
-
-        /// <summary>
-        /// Split and dispatch incoming packets to the <see cref="NetConnection"/>.
-        /// </summary>
-        /// <param name="netConnection"></param>
-        /// <param name="e"></param>
-        private void DispatchPackets(NetConnection netConnection, SocketAsyncEventArgs e)
-        {
-            //byte[] buffer = NetUtils.GetPacketBuffer(e.Buffer, e.Offset, e.BytesTransferred);
-            //IReadOnlyCollection<INetPacketStream> packets = this.SplitPackets(buffer);
-
-            //foreach (var packet in packets)
-            //{
-            //    try
-            //    {
-            //        netConnection.HandleMessage(packet);
-            //    }
-            //    catch (Exception exception)
-            //    {
-            //        this.OnError(exception);
-            //    }
-            //}
-        }
-
-        /// <summary>
-        /// Send data to a <see cref="NetConnection"/>.
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="buffer"></param>
-        private void SendData(NetConnection sender, byte[] buffer)
-        {
-            var newPacket = new PacketData(sender, buffer);
-            this._messageQueue.Enqueue(newPacket);
-            this._autoSendQueueNotifier.Set();
-        }
-
-        /// <summary>
-        /// Process the send queue.
-        /// </summary>
-        private void ProcessSendQueue()
-        {
-            while (true)
-            {
-                this._autoSendQueueNotifier.WaitOne();
-
-                if (this._messageQueue.TryDequeue(out PacketData packet))
-                {
-                    this.Send(packet);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Send the packet through the network.
-        /// </summary>
-        /// <param name="packet"></param>
-        private void Send(PacketData packet)
-        {
-            SocketAsyncEventArgs socketEvent = this._writePool.Pop();
-
-            if (socketEvent != null)
-            {
-                socketEvent.SetBuffer(packet.Data, 0, packet.Data.Length);
-                socketEvent.UserToken = packet.Sender;
-                packet.Sender.Socket.SendAsync(socketEvent);
-            }
-            else
-            {
-                this._autoSendEvent.WaitOne();
-                this.Send(packet);
-            }
+            
+            this.StartAccept(e);
         }
 
         /// <summary>
@@ -299,8 +205,15 @@ namespace Ether.Network.Server
         /// <param name="e"></param>
         private void ProcessSend(SocketAsyncEventArgs e)
         {
-            this._writePool.Push(e);
-            this._autoSendEvent.Set();
+        }
+
+        /// <summary>
+        /// Process the receive async operation on one <see cref="SocketAsyncEventArgs"/>.
+        /// </summary>
+        /// <param name="e"></param>
+        private void ProcessReceive(SocketAsyncEventArgs e)
+        {
+            
         }
 
         /// <summary>
@@ -350,7 +263,6 @@ namespace Ether.Network.Server
                     {
                         this.Socket.Shutdown(SocketShutdown.Both);
                         this.Socket.Dispose();
-                        this.Socket = null;
                     }
 
                     if (this._readPool != null)
@@ -370,14 +282,6 @@ namespace Ether.Network.Server
             }
             else
                 throw new ObjectDisposedException(nameof(NetServer<T>));
-        }
-
-        /// <summary>
-        /// Destroys the <see cref="NetServer{T}"/> instance.
-        /// </summary>
-        ~NetServer()
-        {
-            this.Dispose(false);
         }
 
         /// <summary>
