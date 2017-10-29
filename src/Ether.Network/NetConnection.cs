@@ -13,7 +13,7 @@ namespace Ether.Network
         /// <summary>
         /// Gets or sets the SendAction.
         /// </summary>
-        protected Action<NetConnection, byte[]> SendAction { get; set; }
+        protected internal Action<NetConnection, byte[]> SendAction { get; set; }
 
         /// <summary>
         /// Gets the generated unique Id of the connection.
@@ -24,6 +24,11 @@ namespace Ether.Network
         /// Gets the connection socket.
         /// </summary>
         public Socket Socket { get; protected set; }
+
+        /// <summary>
+        /// Gets the user token.
+        /// </summary>
+        public IAsyncUserToken Token { get; }
         
         /// <summary>
         /// Creates a new <see cref="NetConnection"/> instance.
@@ -31,6 +36,7 @@ namespace Ether.Network
         protected NetConnection()
         {
             this.Id = Guid.NewGuid();
+            this.Token = new AsyncUserToken();
         }
         
         /// <summary>

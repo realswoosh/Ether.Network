@@ -5,8 +5,17 @@ using System.Linq;
 
 namespace Ether.Network.Packets
 {
+    /// <summary>
+    /// Creates a Ether.Network packet steram.
+    /// </summary>
     public class NetPacketStream : MemoryStream, INetPacketStream
     {
+        private enum PacketStateType
+        {
+            Write,
+            Read
+        }
+
         private readonly PacketStateType _state;
         private readonly BinaryReader _memoryReader;
         private readonly BinaryWriter _memoryWriter;

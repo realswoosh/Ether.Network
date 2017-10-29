@@ -61,7 +61,7 @@ namespace Ether.Network.Client
             this._ipEndPoint = NetUtils.CreateIpEndPoint(host, port);
             this._socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this._socketSendArgs = NetUtils.CreateSocketAsync(this.Socket, -1, this.IO_Completed);
-            this._socketReceiveArgs = NetUtils.CreateSocketAsync(new AsyncUserToken(this._socket), bufferSize, this.IO_Completed);
+            this._socketReceiveArgs = NetUtils.CreateSocketAsync(new AsyncUserToken(), bufferSize, this.IO_Completed);
             this._autoConnectEvent = new AutoResetEvent(false);
             this._autoSendEvent = new AutoResetEvent(false);
             this._sendingQueue = new BlockingCollection<byte[]>();
@@ -215,8 +215,8 @@ namespace Ether.Network.Client
 
                 e.SetBuffer(token.NextReceiveOffset, e.Buffer.Length - token.NextReceiveOffset);
 
-                if (!token.Socket.ReceiveAsync(e))
-                    ProcessReceive(e);
+                //if (!token.Socket.ReceiveAsync(e))
+                //    ProcessReceive(e);
             }
         }
 

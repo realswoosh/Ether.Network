@@ -7,9 +7,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Ether.Network.Server
 {
@@ -29,7 +27,6 @@ namespace Ether.Network.Server
         private bool _isDisposed;
         private SocketAsyncEventArgsPool _readPool;
         private SocketAsyncEventArgsPool _writePool;
-
 
         /// <summary>
         /// Gets the <see cref="NetServer{T}"/> listening socket.
@@ -192,19 +189,18 @@ namespace Ether.Network.Server
             {
                 if (e.SocketError == SocketError.Success)
                 {
-                    //var client = new T();
-                    //client.Initialize(e.AcceptSocket, this.SendData);
-
-                    //if (!this._clients.TryAdd(client.Id, client))
-                    //    throw new EtherException($"Client {client.Id} already exists in client list.");
-
-                    //this.OnClientConnected(client);
-
                     SocketAsyncEventArgs readArgs = this._readPool.Pop();
 
                     if (readArgs != null)
                     {
-                        readArgs.UserToken = new AsyncUserToken(e.AcceptSocket);
+                        var client = new T();
+                        client.Initialize(e.AcceptSocket, null);
+
+                        if (!this._clients.TryAdd(client.Id, client))
+                            throw new EtherException($"Client {client.Id} already exists in client list.");
+
+                        this.OnClientConnected(client);
+                        readArgs.UserToken = client;
 
                         if (!e.AcceptSocket.ReceiveAsync(readArgs))
                             this.ProcessReceive(readArgs);
@@ -237,30 +233,14 @@ namespace Ether.Network.Server
         {
             if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
             {
-                var token = e.UserToken as AsyncUserToken;
+                var connection = e.UserToken as NetConnection;
+                IAsyncUserToken token = connection.Token;
 
-                ProcessReceivedData(token.DataStartOffset, token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred, 0, token, e);
+                token.TotalReceivedDataSize = token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred;
+                SocketAsyncUtils.ProcessReceivedData(e, token, this.PacketProcessor, 0);
+                SocketAsyncUtils.ProcessNextReceive(e, token);
 
-                token.NextReceiveOffset += e.BytesTransferred;
-
-                if (token.NextReceiveOffset == e.Buffer.Length)
-                {
-                    token.NextReceiveOffset = 0;
-
-                    if (token.DataStartOffset < e.Buffer.Length)
-                    {
-                        var notYesProcessDataSize = e.Buffer.Length - token.DataStartOffset;
-                        Buffer.BlockCopy(e.Buffer, token.DataStartOffset, e.Buffer, 0, notYesProcessDataSize);
-
-                        token.NextReceiveOffset = notYesProcessDataSize;
-                    }
-
-                    token.DataStartOffset = 0;
-                }
-
-                e.SetBuffer(token.NextReceiveOffset, e.Buffer.Length - token.NextReceiveOffset);
-
-                if (!token.Socket.ReceiveAsync(e))
+                if (!connection.Socket.ReceiveAsync(e))
                     ProcessReceive(e);
             }
             else
@@ -269,59 +249,6 @@ namespace Ether.Network.Server
             }
         }
 
-        /// <summary>
-        /// Process receive data.
-        /// </summary>
-        /// <param name="dataStartOffset"></param>
-        /// <param name="totalReceivedDataSize"></param>
-        /// <param name="alreadyProcessedDataSize"></param>
-        /// <param name="token"></param>
-        /// <param name="e"></param>
-        private void ProcessReceivedData(int dataStartOffset, int totalReceivedDataSize, int alreadyProcessedDataSize, AsyncUserToken token, SocketAsyncEventArgs e)
-        {
-            if (alreadyProcessedDataSize >= totalReceivedDataSize)
-                return;
-
-            if (token.MessageSize == null)
-            {
-                // Read header
-                int headerSize = this.PacketProcessor.HeaderSize;
-
-                if (totalReceivedDataSize > headerSize)
-                {
-                    byte[] headerData = NetUtils.GetPacketBuffer(e.Buffer, dataStartOffset, headerSize);
-                    int messageSize = this.PacketProcessor.GetLength(headerData);
-
-                    token.MessageSize = messageSize - headerSize;
-                    token.DataStartOffset = dataStartOffset + headerSize;
-
-                    this.ProcessReceivedData(token.DataStartOffset, totalReceivedDataSize, alreadyProcessedDataSize + headerSize, token, e);
-                }
-            }
-            else
-            {
-                // Read length
-                var messageSize = token.MessageSize.Value;
-                if (totalReceivedDataSize - alreadyProcessedDataSize >= messageSize)
-                {
-                    byte[] messageData = NetUtils.GetPacketBuffer(e.Buffer, dataStartOffset, messageSize);
-                    
-                    // DEBUG: TODO: remove this and add a receive queue ?
-                    using (var packet = this.PacketProcessor.CreatePacket(messageData))
-                    {
-                        string clientMessage = packet.Read<string>();
-
-                        Console.WriteLine($"Received: '{clientMessage}'");
-                    }
-                    //this._receivingQueue.Add(messageData);
-
-                    token.DataStartOffset = dataStartOffset + messageSize;
-                    token.MessageSize = null;
-
-                    this.ProcessReceivedData(token.DataStartOffset, totalReceivedDataSize, alreadyProcessedDataSize + messageSize, token, e);
-                }
-            }
-        }
 
         /// <summary>
         /// Triggered when a <see cref="SocketAsyncEventArgs"/> async operation is completed.

@@ -1,41 +1,15 @@
-﻿using System;
-using System.Net.Sockets;
+﻿using Ether.Network.Core;
 
 namespace Ether.Network
 {
-    internal sealed class AsyncUserToken : IDisposable
+    internal sealed class AsyncUserToken : IAsyncUserToken
     {
-        public Socket Socket { get; private set; }
         public int? MessageSize { get; set; }
+
         public int DataStartOffset { get; set; }
+
         public int NextReceiveOffset { get; set; }
 
-        public AsyncUserToken(Socket socket)
-        {
-            this.Socket = socket;
-        }
-
-        #region IDisposable Members
-
-        public void Dispose()
-        {
-            try
-            {
-                this.Socket.Shutdown(SocketShutdown.Send);
-            }
-            catch
-            { }
-
-            try
-            {
-#if !NETSTANDARD1_3
-                this.Socket.Close();
-#endif
-            }
-            catch
-            { }
-        }
-
-        #endregion
+        public int TotalReceivedDataSize { get; set; }
     }
 }
