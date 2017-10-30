@@ -2,8 +2,8 @@
 {
     public interface INetUser : INetConnection
     {
-        void Send();
+        void Send(INetPacketStream packet);
 
-        void HandleMessage();
+        void HandleMessage(INetPacketStream packet);
     }
 }

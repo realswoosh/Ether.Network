@@ -3,7 +3,7 @@ using System.Net.Sockets;
 
 namespace Ether.Network.Interfaces
 {
-    public interface INetConnection
+    public interface INetConnection : IDisposable
     {
         Guid Id { get; }
 

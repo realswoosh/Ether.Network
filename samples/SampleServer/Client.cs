@@ -5,7 +5,7 @@ using Ether.Network.Interfaces;
 
 namespace SampleServer
 {
-    internal sealed class Client : NetConnection
+    internal sealed class Client : NetUser
     {
         /// <summary>
         /// Send hello to the incoming clients.
@@ -16,7 +16,7 @@ namespace SampleServer
             {
                 packet.Write("Welcome " + this.Id.ToString());
 
-                this.Send(packet);
+                //this.Send(packet);
             }
         }
 

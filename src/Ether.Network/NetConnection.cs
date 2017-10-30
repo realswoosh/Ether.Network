@@ -1,102 +1,66 @@
 ﻿using Ether.Network.Interfaces;
 using System;
-using System.Collections.Generic;
 using System.Net.Sockets;
 
 namespace Ether.Network
 {
     /// <summary>
-    /// Net connection representing a connection.
+    /// Represents a network connection.
     /// </summary>
-    public abstract class NetConnection : IDisposable
+    public abstract class NetConnection : INetConnection, IDisposable
     {
-        /// <summary>
-        /// Gets or sets the SendAction.
-        /// </summary>
-        protected internal Action<NetConnection, byte[]> SendAction { get; set; }
+        private bool _disposedValue = false;
 
         /// <summary>
-        /// Gets the generated unique Id of the connection.
+        /// Gets or sets the connection's Id.
         /// </summary>
-        public Guid Id { get; private set; }
+        public Guid Id { get; }
 
         /// <summary>
-        /// Gets the connection socket.
+        /// Gets or sets the connection's socket.
         /// </summary>
-        public Socket Socket { get; protected set; }
+        public Socket Socket { get; internal set; }
 
-        /// <summary>
-        /// Gets the user token.
-        /// </summary>
-        internal IAsyncUserToken Token { get; }
-        
         /// <summary>
         /// Creates a new <see cref="NetConnection"/> instance.
         /// </summary>
         protected NetConnection()
         {
             this.Id = Guid.NewGuid();
-            this.Token = new AsyncUserToken();
-        }
-        
-        /// <summary>
-        /// Initialize this <see cref="NetConnection"/> instance.
-        /// </summary>
-        /// <param name="socket">Socket</param>
-        /// <param name="sendAction">Action to send a buffer through the network.</param>
-        internal void Initialize(Socket socket, Action<NetConnection, byte[]> sendAction)
-        {
-            this.Socket = socket;
-            this.SendAction = sendAction;
         }
 
         /// <summary>
-        /// Handle packets.
+        /// Disposes the current <see cref="NetConnection"/> resources.
         /// </summary>
-        /// <param name="packet">Packet recieved.</param>
-        public abstract void HandleMessage(INetPacketStream packet);
-
-        /// <summary>
-        /// Send a packet to this client.
-        /// </summary>
-        /// <param name="packet"></param>
-        public void Send(INetPacketStream packet)
+        ~NetConnection()
         {
-            this.SendAction?.Invoke(this, packet.Buffer);
+            this.Dispose(false);
         }
 
         /// <summary>
-        /// Send a packet to the client passed as parameter.
+        /// Disposes the current <see cref="NetConnection"/> resources.
         /// </summary>
-        /// <param name="destClient">Destination client</param>
-        /// <param name="packet">Packet to send</param>
-        public static void SendTo(NetConnection destClient, INetPacketStream packet)
+        public void Dispose()
         {
-            destClient.Send(packet);
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
-        /// Send to a collection of clients.
+        /// Disposes the current <see cref="NetConnection"/> resources.
         /// </summary>
-        /// <param name="clients">Clients</param>
-        /// <param name="packet">Packet to send</param>
-        public static void SendTo(IEnumerable<NetConnection> clients, INetPacketStream packet)
+        /// <param name="disposing"></param>
+        protected virtual void Dispose(bool disposing)
         {
-            foreach (var client in clients)
-                client.Send(packet);
-        }
+            if (!_disposedValue)
+            {
+                if (disposing)
+                {
+                    this.Socket.Dispose();
+                }
 
-        /// <summary>
-        /// Dispose the NetConnection resources.
-        /// </summary>
-        public virtual void Dispose()
-        {
-            if (this.Socket == null)
-                return;
-
-            this.Socket.Shutdown(SocketShutdown.Both);
-            this.Socket.Dispose();
-            this.Socket = null;
+                _disposedValue = true;
+            }
         }
     }
 }

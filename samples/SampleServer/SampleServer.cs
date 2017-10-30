@@ -1,5 +1,4 @@
 ﻿using Ether.Network;
-using Ether.Network.Server;
 using System;
 
 namespace SampleServer

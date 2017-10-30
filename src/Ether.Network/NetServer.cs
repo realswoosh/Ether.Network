@@ -1,6 +1,7 @@
-﻿using Ether.Network.Interfaces;
-using Ether.Network.Exceptions;
+﻿using Ether.Network.Exceptions;
+using Ether.Network.Interfaces;
 using Ether.Network.Packets;
+using Ether.Network.Server;
 using Ether.Network.Utils;
 using System;
 using System.Collections.Concurrent;
@@ -9,13 +10,12 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
-namespace Ether.Network.Server
+namespace Ether.Network
 {
     /// <summary>
-    /// Managed TCP socket server.
+    /// Creates a new TCP managed server.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    public abstract class NetServer<T> : INetServer, IDisposable where T : NetConnection, new()
+    public abstract class NetServer<T> : NetConnection, INetServer, IDisposable where T : NetUser, new()
     {
         private static readonly IPacketProcessor DefaultPacketProcessor = new NetPacketProcessor();
         private static readonly string AllInterfaces = "0.0.0.0";
@@ -27,11 +27,6 @@ namespace Ether.Network.Server
         private bool _isDisposed;
         private SocketAsyncEventArgsPool _readPool;
         private SocketAsyncEventArgsPool _writePool;
-
-        /// <summary>
-        /// Gets the <see cref="NetServer{T}"/> listening socket.
-        /// </summary>
-        protected Socket Socket { get; }
 
         /// <summary>
         /// Gets the <see cref="NetServer{T}"/> configuration
@@ -62,6 +57,8 @@ namespace Ether.Network.Server
             this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this._clients = new ConcurrentDictionary<Guid, T>();
             this._acceptArgs = NetUtils.CreateSocketAsync(null, -1, this.IO_Completed);
+            this._readPool = new SocketAsyncEventArgsPool();
+            this._writePool = new SocketAsyncEventArgsPool();
 
             this._manualResetEvent = new ManualResetEvent(false);
         }
@@ -89,20 +86,10 @@ namespace Ether.Network.Server
             if (address == null)
                 throw new EtherConfigurationException($"Invalid host : {this.Configuration.Host}");
 
-            if (this._readPool == null)
+            for (int i = 0; i < this.Configuration.MaximumNumberOfConnections; i++)
             {
-                this._readPool = new SocketAsyncEventArgsPool();
-
-                for (int i = 0; i < this.Configuration.MaximumNumberOfConnections; i++)
-                    this._readPool.Push(NetUtils.CreateSocketAsync(null, this.Configuration.BufferSize, this.IO_Completed));
-            }
-
-            if (this._writePool == null)
-            {
-                this._writePool = new SocketAsyncEventArgsPool();
-
-                for (int i = 0; i < this.Configuration.MaximumNumberOfConnections; i++)
-                    this._writePool.Push(NetUtils.CreateSocketAsync(null, this.Configuration.BufferSize, this.IO_Completed));
+                this._readPool.Push(NetUtils.CreateSocketAsync(null, this.Configuration.BufferSize, this.IO_Completed));
+                this._writePool.Push(NetUtils.CreateSocketAsync(null, this.Configuration.BufferSize, this.IO_Completed));
             }
 
             this.Initialize();
@@ -193,8 +180,10 @@ namespace Ether.Network.Server
 
                     if (readArgs != null)
                     {
-                        var client = new T();
-                        client.Initialize(e.AcceptSocket, null);
+                        var client = new T
+                        {
+                            Socket = e.AcceptSocket
+                        };
 
                         if (!this._clients.TryAdd(client.Id, client))
                             throw new EtherException($"Client {client.Id} already exists in client list.");
@@ -233,7 +222,7 @@ namespace Ether.Network.Server
         {
             if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
             {
-                var connection = e.UserToken as NetConnection;
+                var connection = e.UserToken as NetUser;
                 IAsyncUserToken token = connection.Token;
 
                 token.TotalReceivedDataSize = token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred;
@@ -248,8 +237,7 @@ namespace Ether.Network.Server
                 Console.WriteLine("Disconnected");
             }
         }
-
-
+        
         /// <summary>
         /// Triggered when a <see cref="SocketAsyncEventArgs"/> async operation is completed.
         /// </summary>
@@ -276,51 +264,37 @@ namespace Ether.Network.Server
                     throw new InvalidOperationException("Unexpected SocketAsyncOperation.");
             }
         }
-        
+
         /// <summary>
         /// Dispose the <see cref="NetServer{T}"/> resources.
         /// </summary>
         /// <param name="disposing"></param>
-        protected virtual void Dispose(bool disposing)
+        protected override void Dispose(bool disposing)
         {
-            if (!_isDisposed)
+            if (!this._isDisposed)
             {
-                if (disposing)
+                if (this._readPool != null)
                 {
-                    this.Stop();
-
-                    if (this.Socket != null)
-                    {
-                        this.Socket.Shutdown(SocketShutdown.Both);
-                        this.Socket.Dispose();
-                    }
-
-                    if (this._readPool != null)
-                    {
-                        this._readPool.Dispose();
-                        this._readPool = null;
-                    }
-
-                    if (this._writePool != null)
-                    {
-                        this._writePool.Dispose();
-                        this._writePool = null;
-                    }
+                    this._readPool.Dispose();
+                    this._readPool = null;
                 }
 
-                _isDisposed = true;
+                if (this._writePool != null)
+                {
+                    this._writePool.Dispose();
+                    this._writePool = null;
+                }
+
+                foreach (var client in this._clients)
+                    client.Value.Dispose();
+
+                this._clients.Clear();
+                this._isDisposed = true;
             }
             else
                 throw new ObjectDisposedException(nameof(NetServer<T>));
-        }
 
-        /// <summary>
-        /// Dispose the <see cref="NetServer{T}"/> resources.
-        /// </summary>
-        public void Dispose()
-        {
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
+            base.Dispose(disposing);
         }
     }
 }

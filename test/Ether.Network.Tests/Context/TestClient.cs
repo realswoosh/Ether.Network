@@ -3,7 +3,7 @@ using Ether.Network.Packets;
 
 namespace Ether.Network.Tests.Context
 {
-    internal class TestClient : NetConnection
+    internal class TestClient : NetConnectionOld
     {
         public void SendHello()
         {
