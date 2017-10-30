@@ -22,11 +22,10 @@ namespace Ether.Network
 
         private readonly ManualResetEvent _manualResetEvent;
         private readonly ConcurrentDictionary<Guid, T> _clients;
-        private readonly SocketAsyncEventArgs _acceptArgs;
+        private readonly SocketAsyncEventArgsPool _readPool;
+        private readonly SocketAsyncEventArgsPool _writePool;
 
         private bool _isDisposed;
-        private SocketAsyncEventArgsPool _readPool;
-        private SocketAsyncEventArgsPool _writePool;
 
         /// <summary>
         /// Gets the <see cref="NetServer{T}"/> configuration
@@ -56,7 +55,6 @@ namespace Ether.Network
             this.Configuration = new NetServerConfiguration(this);
             this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this._clients = new ConcurrentDictionary<Guid, T>();
-            this._acceptArgs = NetUtils.CreateSocketAsync(null, -1, this.IO_Completed);
             this._readPool = new SocketAsyncEventArgsPool();
             this._writePool = new SocketAsyncEventArgsPool();
 
@@ -184,6 +182,7 @@ namespace Ether.Network
                         {
                             Socket = e.AcceptSocket
                         };
+                        client.Token.MessageHandler = messageData => this.HandleIncomingMessages(client, messageData);
 
                         if (!this._clients.TryAdd(client.Id, client))
                             throw new EtherException($"Client {client.Id} already exists in client list.");
@@ -230,12 +229,23 @@ namespace Ether.Network
                 SocketAsyncUtils.ProcessNextReceive(e, token);
 
                 if (!connection.Socket.ReceiveAsync(e))
-                    ProcessReceive(e);
+                    this.ProcessReceive(e);
             }
             else
             {
                 Console.WriteLine("Disconnected");
             }
+        }
+
+        /// <summary>
+        /// Handle incoming message packets.
+        /// </summary>
+        /// <param name="user">Current user</param>
+        /// <param name="messageData">Incoming message data</param>
+        private void HandleIncomingMessages(INetUser user, byte[] messageData)
+        {
+            using (var packet = this.PacketProcessor.CreatePacket(messageData))
+                user.HandleMessage(packet);
         }
         
         /// <summary>
@@ -273,17 +283,8 @@ namespace Ether.Network
         {
             if (!this._isDisposed)
             {
-                if (this._readPool != null)
-                {
-                    this._readPool.Dispose();
-                    this._readPool = null;
-                }
-
-                if (this._writePool != null)
-                {
-                    this._writePool.Dispose();
-                    this._writePool = null;
-                }
+                this._readPool?.Dispose();
+                this._writePool?.Dispose();
 
                 foreach (var client in this._clients)
                     client.Value.Dispose();

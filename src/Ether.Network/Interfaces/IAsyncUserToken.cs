@@ -1,4 +1,6 @@
-﻿namespace Ether.Network.Interfaces
+﻿using System;
+
+namespace Ether.Network.Interfaces
 {
     internal interface IAsyncUserToken
     {
@@ -9,5 +11,7 @@
         int NextReceiveOffset { get; set; }
 
         int TotalReceivedDataSize { get; set; }
+
+        Action<byte[]> MessageHandler { get; set; }
     }
 }

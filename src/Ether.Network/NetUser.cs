@@ -7,6 +7,8 @@ namespace Ether.Network
     {
         internal IAsyncUserToken Token { get; }
 
+        internal Action<INetUser, byte[]> SendAction { get; set; }
+
         protected NetUser()
         {
             this.Token = new AsyncUserToken();
@@ -14,12 +16,11 @@ namespace Ether.Network
 
         public virtual void HandleMessage(INetPacketStream packet)
         {
-            throw new NotImplementedException();
         }
 
         public virtual void Send(INetPacketStream packet)
         {
-            throw new NotImplementedException();
+            this.SendAction?.Invoke(this, packet.Buffer);
         }
 
         protected override void Dispose(bool disposing)

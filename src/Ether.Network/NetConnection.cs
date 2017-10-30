@@ -9,7 +9,7 @@ namespace Ether.Network
     /// </summary>
     public abstract class NetConnection : INetConnection, IDisposable
     {
-        private bool _disposedValue = false;
+        private bool _disposedValue;
 
         /// <summary>
         /// Gets or sets the connection's Id.

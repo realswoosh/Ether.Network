@@ -1,4 +1,5 @@
-﻿using Ether.Network.Interfaces;
+﻿using System;
+using Ether.Network.Interfaces;
 
 namespace Ether.Network
 {
@@ -11,5 +12,17 @@ namespace Ether.Network
         public int NextReceiveOffset { get; set; }
 
         public int TotalReceivedDataSize { get; set; }
+
+        public Action<byte[]> MessageHandler { get; set; }
+
+        public AsyncUserToken()
+            : this(null)
+        {
+        }
+
+        public AsyncUserToken(Action<byte[]> messageHandlerAction)
+        {
+            this.MessageHandler = messageHandlerAction;
+        }
     }
 }
