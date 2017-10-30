@@ -16,7 +16,7 @@ namespace SampleServer
             {
                 packet.Write("Welcome " + this.Id.ToString());
 
-                //this.Send(packet);
+                this.Send(packet);
             }
         }
 

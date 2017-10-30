@@ -28,7 +28,7 @@ namespace Ether.Network.Packets
         /// <summary>
         /// Gets the <see cref="NetPacketStream"/> buffer.
         /// </summary>
-        public virtual byte[] Buffer => this.GetBuffer();
+        public virtual byte[] Buffer => this.GetInternalBuffer();
 
         /// <summary>
         /// Creates and initializes a new <see cref="NetPacketStream"/> instance in write-only mode.
@@ -109,7 +109,11 @@ namespace Ether.Network.Packets
                 NetPacketMethods.WriteMethods[type](this._memoryWriter, value);
         }
 
-        private new byte[] GetBuffer()
+        /// <summary>
+        /// Get stream buffer.
+        /// </summary>
+        /// <returns></returns>
+        private byte[] GetInternalBuffer()
         {
 #if NET45 || NET451
             return base.GetBuffer();
@@ -127,12 +131,6 @@ namespace Ether.Network.Packets
         /// <param name="disposing"></param>
         protected override void Dispose(bool disposing)
         {
-            //if (disposing)
-            //{
-            //    this._memoryReader?.Dispose();
-            //    this._memoryWriter?.Dispose();
-            //}
-
             base.Dispose(disposing);
         }
     }

@@ -38,7 +38,7 @@ namespace Ether.Network.Utils
 
         public static SocketAsyncEventArgs CreateSocketAsync(object userToken, int bufferSize, EventHandler<SocketAsyncEventArgs> completedAction)
         {
-            var socketAsync = new SocketAsyncEventArgs()
+            var socketAsync = new SocketAsyncEventArgs
             {
                 UserToken = userToken
             };
