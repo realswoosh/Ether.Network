@@ -33,4 +33,8 @@
     <PackageReference Include="System.Threading.Thread" Version="4.3.0" />
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Server\" />
+  </ItemGroup>
 </Project>

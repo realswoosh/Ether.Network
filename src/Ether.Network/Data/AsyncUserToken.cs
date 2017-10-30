@@ -1,7 +1,7 @@
 ﻿using System;
 using Ether.Network.Interfaces;
 
-namespace Ether.Network
+namespace Ether.Network.Data
 {
     internal sealed class AsyncUserToken : IAsyncUserToken
     {

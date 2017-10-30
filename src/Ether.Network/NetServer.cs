@@ -1,4 +1,5 @@
-﻿using Ether.Network.Exceptions;
+﻿using Ether.Network.Data;
+using Ether.Network.Exceptions;
 using Ether.Network.Interfaces;
 using Ether.Network.Packets;
 using Ether.Network.Server;
@@ -9,6 +10,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Ether.Network
 {
@@ -21,9 +23,12 @@ namespace Ether.Network
         private static readonly string AllInterfaces = "0.0.0.0";
 
         private readonly ManualResetEvent _manualResetEvent;
+        private readonly AutoResetEvent _autoSendEvent;
         private readonly ConcurrentDictionary<Guid, T> _clients;
+        private readonly BlockingCollection<MessageData> _messageQueue;
         private readonly SocketAsyncEventArgsPool _readPool;
         private readonly SocketAsyncEventArgsPool _writePool;
+        private readonly Task _sendQueueTask;
 
         private bool _isDisposed;
 
@@ -55,10 +60,13 @@ namespace Ether.Network
             this.Configuration = new NetServerConfiguration(this);
             this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this._clients = new ConcurrentDictionary<Guid, T>();
+            this._messageQueue = new BlockingCollection<MessageData>();
             this._readPool = new SocketAsyncEventArgsPool();
             this._writePool = new SocketAsyncEventArgsPool();
 
             this._manualResetEvent = new ManualResetEvent(false);
+            this._autoSendEvent = new AutoResetEvent(false);
+            this._sendQueueTask = new Task(this.ProcessSendQueue);
         }
 
         /// <summary>
@@ -96,6 +104,7 @@ namespace Ether.Network
             this.StartAccept(null);
 
             this.IsRunning = true;
+            this._sendQueueTask.Start();
             this._manualResetEvent.WaitOne();
         }
 
@@ -182,6 +191,7 @@ namespace Ether.Network
                         {
                             Socket = e.AcceptSocket
                         };
+                        client.SendAction = this.SendMessageAction;
                         client.Token.MessageHandler = messageData => this.HandleIncomingMessages(client, messageData);
 
                         if (!this._clients.TryAdd(client.Id, client))
@@ -211,6 +221,53 @@ namespace Ether.Network
         /// <param name="e"></param>
         private void ProcessSend(SocketAsyncEventArgs e)
         {
+            this._writePool.Push(e);
+            this._autoSendEvent.Set();
+        }
+
+        /// <summary>
+        /// Adds the message to the sending queue.
+        /// </summary>
+        /// <param name="user">User that sent the message</param>
+        /// <param name="message">Message</param>
+        private void SendMessageAction(INetUser user, byte[] message)
+        {
+            this._messageQueue.Add(new MessageData(user, message));
+        }
+
+        /// <summary>
+        /// Process the send queue.
+        /// </summary>
+        private void ProcessSendQueue()
+        {
+            while (true)
+            {
+                var message = this._messageQueue.Take();
+
+                if (message.User != null && message.Message != null)
+                    this.SendMessage(message);
+            }
+        }
+
+        /// <summary>
+        /// Sends the message through the network.
+        /// </summary>
+        /// <param name="messageData"></param>
+        private void SendMessage(MessageData messageData)
+        {
+            var writeEventArgs = this._writePool.Pop();
+
+            if (writeEventArgs != null)
+            {
+                writeEventArgs.SetBuffer(messageData.Message, 0, messageData.Message.Length);
+                writeEventArgs.UserToken = messageData.User;
+                messageData.User.Socket.SendAsync(writeEventArgs);
+            }
+            else
+            {
+                this._autoSendEvent.WaitOne();
+                this.SendMessage(messageData);
+            }
         }
 
         /// <summary>
