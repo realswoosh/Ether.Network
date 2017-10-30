@@ -207,7 +207,7 @@ namespace Ether.Network
             }
             catch (Exception exception)
             {
-                // TODO: handle exception
+                this.OnError(exception);
             }
             finally
             {
@@ -289,9 +289,20 @@ namespace Ether.Network
                     this.ProcessReceive(e);
             }
             else
-            {
-                Console.WriteLine("Disconnected");
-            }
+                this.CloseConnection(e);
+        }
+
+        /// <summary>
+        /// Close the connection.
+        /// </summary>
+        /// <param name="e"></param>
+        private void CloseConnection(SocketAsyncEventArgs e)
+        {
+            var connection = e.UserToken as INetUser;
+
+            connection.Dispose();
+            this._readPool.Push(e);
+            this.OnClientDisconnected(connection as T);
         }
 
         /// <summary>
