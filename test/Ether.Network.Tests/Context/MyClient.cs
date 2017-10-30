@@ -2,7 +2,7 @@
 using System.Net.Sockets;
 using Ether.Network.Packets;
 using Ether.Network.Client;
-using Ether.Network.Core;
+using Ether.Network.Interfaces;
 
 namespace Ether.Network.Tests.Context
 {

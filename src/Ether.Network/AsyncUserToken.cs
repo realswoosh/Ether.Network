@@ -1,4 +1,4 @@
-﻿using Ether.Network.Core;
+﻿using Ether.Network.Interfaces;
 
 namespace Ether.Network
 {

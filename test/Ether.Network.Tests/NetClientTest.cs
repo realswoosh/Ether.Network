@@ -1,4 +1,4 @@
-﻿using Ether.Network.Core;
+﻿using Ether.Network.Interfaces;
 using Ether.Network.Exceptions;
 using Ether.Network.Tests.Context;
 using System;

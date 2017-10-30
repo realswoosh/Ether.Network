@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Ether.Network.Core
+namespace Ether.Network.Interfaces
 {
     public interface INetPacketStream : IDisposable
     {

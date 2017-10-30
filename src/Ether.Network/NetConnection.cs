@@ -1,4 +1,4 @@
-﻿using Ether.Network.Core;
+﻿using Ether.Network.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
@@ -28,7 +28,7 @@ namespace Ether.Network
         /// <summary>
         /// Gets the user token.
         /// </summary>
-        public IAsyncUserToken Token { get; }
+        internal IAsyncUserToken Token { get; }
         
         /// <summary>
         /// Creates a new <see cref="NetConnection"/> instance.

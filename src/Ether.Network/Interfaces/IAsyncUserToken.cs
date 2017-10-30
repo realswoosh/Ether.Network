@@ -1,6 +1,6 @@
-﻿namespace Ether.Network.Core
+﻿namespace Ether.Network.Interfaces
 {
-    public interface IAsyncUserToken
+    internal interface IAsyncUserToken
     {
         int? MessageSize { get; set; }
 

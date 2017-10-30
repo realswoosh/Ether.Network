@@ -1,4 +1,4 @@
-﻿using Ether.Network.Core;
+﻿using Ether.Network.Interfaces;
 using System.Threading.Tasks;
 using Xunit;
 

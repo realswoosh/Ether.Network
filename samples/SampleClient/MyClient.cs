@@ -1,5 +1,5 @@
 ﻿using Ether.Network.Client;
-using Ether.Network.Core;
+using Ether.Network.Interfaces;
 using System;
 using System.Net.Sockets;
 
