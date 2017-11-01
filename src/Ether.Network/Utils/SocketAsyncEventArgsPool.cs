@@ -39,6 +39,8 @@ namespace Ether.Network.Utils
             if (socketAsyncEventArgs == null)
                 throw new ArgumentNullException(nameof(socketAsyncEventArgs));
 
+            Array.Clear(socketAsyncEventArgs.Buffer, 0, socketAsyncEventArgs.Buffer.Length);
+            socketAsyncEventArgs.SetBuffer(socketAsyncEventArgs.Buffer, 0, socketAsyncEventArgs.Buffer.Length);
             this._socketPool.Push(socketAsyncEventArgs);
         }
 

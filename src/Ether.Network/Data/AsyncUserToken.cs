@@ -22,6 +22,10 @@ namespace Ether.Network.Data
 
         public AsyncUserToken(Action<byte[]> messageHandlerAction)
         {
+            this.MessageSize = null;
+            this.DataStartOffset = 0;
+            this.NextReceiveOffset = 0;
+            this.TotalReceivedDataSize = 0;
             this.MessageHandler = messageHandlerAction;
         }
     }

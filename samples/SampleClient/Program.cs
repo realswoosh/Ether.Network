@@ -1,5 +1,6 @@
 ﻿using System;
 using Ether.Network.Packets;
+using System.Linq;
 
 namespace SampleClient
 {
@@ -17,7 +18,7 @@ namespace SampleClient
             {
                 while (true)
                 {
-                    string input = Console.ReadLine(); //"Yolo " + i.ToString();
+                    string input = $"{GenerateRandomString(20)} - {i.ToString()}";
 
                     if (input == "quit")
                     {
@@ -48,6 +49,23 @@ namespace SampleClient
 
             Console.WriteLine("Disconnected. Press any key to continue...");
             Console.ReadLine();
+        }
+
+        private const string CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+        /// <summary>
+        /// Generates a random string.
+        /// </summary>
+        /// <param name="count">Length of the string.</param>
+        /// <returns>Generated string</returns>
+        public static string GenerateRandomString(int count = 8)
+        {
+            var random = new Random();
+
+            return new string(
+                Enumerable.Repeat(CHARACTERS, count)
+                          .Select(s => s[random.Next(s.Length)])
+                          .ToArray());
         }
     }
 }
