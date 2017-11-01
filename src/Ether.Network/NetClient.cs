@@ -14,13 +14,11 @@ namespace Ether.Network
     /// <summary>
     /// Managed TCP client.
     /// </summary>
-    public abstract class NetClient : INetClient, IDisposable
+    public abstract class NetClient : NetUser, INetClient, IDisposable
     {
         private static readonly IPacketProcessor DefaultPacketProcessor = new NetPacketProcessor();
 
-        private readonly Guid _id;
         private readonly IPEndPoint _ipEndPoint;
-        private readonly Socket _socket;
         private readonly SocketAsyncEventArgs _socketReceiveArgs;
         private readonly SocketAsyncEventArgs _socketSendArgs;
         private readonly AutoResetEvent _autoConnectEvent;
@@ -30,15 +28,7 @@ namespace Ether.Network
         private readonly Task _sendingQueueWorker;
         private readonly Task _receivingQueueWorker;
 
-        /// <summary>
-        /// Gets the <see cref="NetClient"/> unique Id.
-        /// </summary>
-        public Guid Id => this._id;
-
-        /// <summary>
-        /// Gets the <see cref="NetClient"/> socket.
-        /// </summary>
-        protected Socket Socket => this._socket;
+        private bool _isDisposed;
 
         /// <summary>
         /// Gets the packet processor.
@@ -58,11 +48,10 @@ namespace Ether.Network
         /// <param name="bufferSize">Buffer size</param>
         protected NetClient(string host, int port, int bufferSize)
         {
-            this._id = Guid.NewGuid();
+            this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this._ipEndPoint = NetUtils.CreateIpEndPoint(host, port);
-            this._socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this._socketSendArgs = NetUtils.CreateSocketAsync(this.Socket, -1, this.IO_Completed);
-            this._socketReceiveArgs = NetUtils.CreateSocketAsync(new AsyncUserToken(), bufferSize, this.IO_Completed);
+            this._socketReceiveArgs = NetUtils.CreateSocketAsync(this, bufferSize, this.IO_Completed);
             this._autoConnectEvent = new AutoResetEvent(false);
             this._autoSendEvent = new AutoResetEvent(false);
             this._sendingQueue = new BlockingCollection<byte[]>();
@@ -79,10 +68,10 @@ namespace Ether.Network
             if (this.IsConnected)
                 throw new InvalidOperationException("Client is already connected to remote.");
 
-            var connectSocket = NetUtils.CreateSocketAsync(this._socket, -1, this.IO_Completed);
+            var connectSocket = NetUtils.CreateSocketAsync(this.Socket, -1, this.IO_Completed);
             connectSocket.RemoteEndPoint = this._ipEndPoint;
 
-            this._socket.ConnectAsync(connectSocket);
+            this.Socket.ConnectAsync(connectSocket);
             this._autoConnectEvent.WaitOne();
 
             SocketError errorCode = connectSocket.SocketError;
@@ -92,8 +81,9 @@ namespace Ether.Network
 
             this._sendingQueueWorker.Start();
             this._receivingQueueWorker.Start();
+            this.Token.MessageHandler = data => this._receivingQueue.Add(data);
 
-            if (!this._socket.ReceiveAsync(this._socketReceiveArgs))
+            if (!this.Socket.ReceiveAsync(this._socketReceiveArgs))
                 this.ProcessReceive(this._socketReceiveArgs);
         }
 
@@ -105,10 +95,11 @@ namespace Ether.Network
             if (this.IsConnected)
             {
 #if !NETSTANDARD1_3
-                this._socket.Close();
+                this.Socket.Close();
+#else
+                this.Socket.Shutdown(SocketShutdown.Both);
+                this.Socket.Dispose();
 #endif
-                this._socket.Shutdown(SocketShutdown.Both);
-                this._socket.Dispose();
             }
         }
 
@@ -116,7 +107,7 @@ namespace Ether.Network
         /// Sends a packet through the network.
         /// </summary>
         /// <param name="packet"></param>
-        public void Send(INetPacketStream packet)
+        public override void Send(INetPacketStream packet)
         {
             if (!this.IsConnected)
                 throw new SocketException();
@@ -128,7 +119,10 @@ namespace Ether.Network
         /// Triggered when the <see cref="NetClient"/> receives a packet.
         /// </summary>
         /// <param name="packet"></param>
-        protected abstract void HandleMessage(INetPacketStream packet);
+        public override void HandleMessage(INetPacketStream packet)
+        {
+            // Nothing to handle
+        }
 
         /// <summary>
         /// Triggered when the client is connected to the remote end point.
@@ -162,7 +156,7 @@ namespace Ether.Network
 
                     this._socketSendArgs.SetBuffer(packetBuffer, 0, packetBuffer.Length);
 
-                    if (this._socket.SendAsync(this._socketSendArgs))
+                    if (this.Socket.SendAsync(this._socketSendArgs))
                         this._autoSendEvent.WaitOne();
                 }
             }
@@ -193,31 +187,34 @@ namespace Ether.Network
         {
             if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
             {
-                var token = e.UserToken as AsyncUserToken;
+                var user = e.UserToken as NetUser;
+                var token = user.Token;
 
-                ProcessReceivedData(token.DataStartOffset, token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred, 0, token, e);
+                token.TotalReceivedDataSize = token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred;
+                //ProcessReceivedData(token.DataStartOffset, token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred, 0, token, e);
+                SocketAsyncUtils.ProcessReceivedData(e, token, this.PacketProcessor, 0);
+                SocketAsyncUtils.ProcessNextReceive(e, token);
+                //token.NextReceiveOffset += e.BytesTransferred;
 
-                token.NextReceiveOffset += e.BytesTransferred;
+                //if (token.NextReceiveOffset == e.Buffer.Length)
+                //{
+                //    token.NextReceiveOffset = 0;
 
-                if (token.NextReceiveOffset == e.Buffer.Length)
-                {
-                    token.NextReceiveOffset = 0;
+                //    if (token.DataStartOffset < e.Buffer.Length)
+                //    {
+                //        var notYesProcessDataSize = e.Buffer.Length - token.DataStartOffset;
+                //        Buffer.BlockCopy(e.Buffer, token.DataStartOffset, e.Buffer, 0, notYesProcessDataSize);
 
-                    if (token.DataStartOffset < e.Buffer.Length)
-                    {
-                        var notYesProcessDataSize = e.Buffer.Length - token.DataStartOffset;
-                        Buffer.BlockCopy(e.Buffer, token.DataStartOffset, e.Buffer, 0, notYesProcessDataSize);
+                //        token.NextReceiveOffset = notYesProcessDataSize;
+                //    }
 
-                        token.NextReceiveOffset = notYesProcessDataSize;
-                    }
+                //    token.DataStartOffset = 0;
+                //}
 
-                    token.DataStartOffset = 0;
-                }
+                //e.SetBuffer(token.NextReceiveOffset, e.Buffer.Length - token.NextReceiveOffset);
 
-                e.SetBuffer(token.NextReceiveOffset, e.Buffer.Length - token.NextReceiveOffset);
-
-                //if (!token.Socket.ReceiveAsync(e))
-                //    ProcessReceive(e);
+                if (!user.Socket.ReceiveAsync(e))
+                    this.ProcessReceive(e);
             }
         }
 
@@ -229,7 +226,7 @@ namespace Ether.Network
         /// <param name="alreadyProcessedDataSize"></param>
         /// <param name="token"></param>
         /// <param name="e"></param>
-        private void ProcessReceivedData(int dataStartOffset, int totalReceivedDataSize, int alreadyProcessedDataSize, AsyncUserToken token, SocketAsyncEventArgs e)
+        private void ProcessReceivedData(int dataStartOffset, int totalReceivedDataSize, int alreadyProcessedDataSize, IAsyncUserToken token, SocketAsyncEventArgs e)
         {
             if (alreadyProcessedDataSize >= totalReceivedDataSize)
                 return;
@@ -304,11 +301,18 @@ namespace Ether.Network
         /// <summary>
         /// Dispose the <see cref="NetClient"/> instance.
         /// </summary>
-        public virtual void Dispose()
+        protected override void Dispose(bool disposing)
         {
-            this._autoConnectEvent.Dispose();
-            this._autoSendEvent.Dispose();
-            this.Disconnect();
+            if (!this._isDisposed)
+            {
+                this._autoConnectEvent.Dispose();
+                this._autoSendEvent.Dispose();
+                this.Disconnect();
+            }
+
+            this._isDisposed = true;
+
+            base.Dispose(disposing);
         }
     }
 }

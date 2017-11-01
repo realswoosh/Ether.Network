@@ -22,7 +22,7 @@ namespace SampleClient
         /// Handles incoming messages.
         /// </summary>
         /// <param name="packet"></param>
-        protected override void HandleMessage(INetPacketStream packet)
+        public override void HandleMessage(INetPacketStream packet)
         {
             var response = packet.Read<string>();
             Console.WriteLine($"-> Server response: '{response}'");
