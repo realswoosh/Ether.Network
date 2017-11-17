@@ -101,7 +101,7 @@ namespace Ether.Network
             this.Initialize();
             this.Socket.Bind(new IPEndPoint(address, this.Configuration.Port));
             this.Socket.Listen(this.Configuration.Backlog);
-            this.StartAccept(null);
+            this.StartAccept(NetUtils.CreateSocketAsync(null, -1, this.IO_Completed));
 
             this.IsRunning = true;
             this._sendQueueTask.Start();
@@ -164,9 +164,7 @@ namespace Ether.Network
         /// </summary>
         private void StartAccept(SocketAsyncEventArgs e)
         {
-            if (e == null)
-                e = NetUtils.CreateSocketAsync(null, -1, this.IO_Completed);
-            else if (e.AcceptSocket != null)
+            if (e.AcceptSocket != null)
                 e.AcceptSocket = null;
 
             if (!this.Socket.AcceptAsync(e))

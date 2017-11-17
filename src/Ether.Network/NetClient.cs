@@ -191,27 +191,9 @@ namespace Ether.Network
                 var token = user.Token;
 
                 token.TotalReceivedDataSize = token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred;
-                //ProcessReceivedData(token.DataStartOffset, token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred, 0, token, e);
+
                 SocketAsyncUtils.ProcessReceivedData(e, token, this.PacketProcessor, 0);
                 SocketAsyncUtils.ProcessNextReceive(e, token);
-                //token.NextReceiveOffset += e.BytesTransferred;
-
-                //if (token.NextReceiveOffset == e.Buffer.Length)
-                //{
-                //    token.NextReceiveOffset = 0;
-
-                //    if (token.DataStartOffset < e.Buffer.Length)
-                //    {
-                //        var notYesProcessDataSize = e.Buffer.Length - token.DataStartOffset;
-                //        Buffer.BlockCopy(e.Buffer, token.DataStartOffset, e.Buffer, 0, notYesProcessDataSize);
-
-                //        token.NextReceiveOffset = notYesProcessDataSize;
-                //    }
-
-                //    token.DataStartOffset = 0;
-                //}
-
-                //e.SetBuffer(token.NextReceiveOffset, e.Buffer.Length - token.NextReceiveOffset);
 
                 if (!user.Socket.ReceiveAsync(e))
                     this.ProcessReceive(e);
