@@ -24,6 +24,7 @@ namespace Ether.Network.Packets
             { typeof(long), reader => reader.ReadInt64()},
             { typeof(float), reader => reader.ReadSingle() },
             { typeof(double), reader => reader.ReadDouble() },
+            { typeof(byte[]), reader => reader.ReadBytes(count: reader.ReadInt32()) },
             { typeof(string), reader => new string(reader.ReadChars(count: reader.ReadInt32())) },
         };
 
@@ -43,7 +44,14 @@ namespace Ether.Network.Packets
             { typeof(long), (writer, value) => writer.Write((long)value) },
             { typeof(float), (writer, value) => writer.Write((float)value) },
             { typeof(double), (writer, value) => writer.Write((double)value) },
-            { typeof(byte[]), (writer, value) => writer.Write((byte[])value) },
+            { typeof(byte[]),
+                (writer, value) =>
+                {
+                    writer.Write(((byte[])value).Length);
+                    if (((byte[])value).Length > 0)
+                        writer.Write((byte[])value);
+                }
+            },
             { typeof(string),
                 (writer, value) =>
                 {
