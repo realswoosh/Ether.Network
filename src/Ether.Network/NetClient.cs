@@ -71,8 +71,8 @@ namespace Ether.Network
             var connectSocket = NetUtils.CreateSocketAsync(this.Socket, -1, this.IO_Completed);
             connectSocket.RemoteEndPoint = this._ipEndPoint;
 
-            this.Socket.ConnectAsync(connectSocket);
-            this._autoConnectEvent.WaitOne();
+            if (this.Socket.ConnectAsync(connectSocket))
+                this._autoConnectEvent.WaitOne();
 
             SocketError errorCode = connectSocket.SocketError;
 
@@ -159,6 +159,7 @@ namespace Ether.Network
 
                     if (this.Socket.SendAsync(this._socketSendArgs))
                         this._autoSendEvent.WaitOne();
+
                 }
             }
         }
@@ -192,60 +193,11 @@ namespace Ether.Network
                 var token = user.Token;
 
                 token.TotalReceivedDataSize = token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred;
-
                 SocketAsyncUtils.ProcessReceivedData(e, token, this.PacketProcessor, 0);
                 SocketAsyncUtils.ProcessNextReceive(e, token);
 
                 if (!user.Socket.ReceiveAsync(e))
                     this.ProcessReceive(e);
-            }
-        }
-
-        /// <summary>
-        /// Process receive data.
-        /// </summary>
-        /// <param name="dataStartOffset"></param>
-        /// <param name="totalReceivedDataSize"></param>
-        /// <param name="alreadyProcessedDataSize"></param>
-        /// <param name="token"></param>
-        /// <param name="e"></param>
-        private void ProcessReceivedData(int dataStartOffset, int totalReceivedDataSize, int alreadyProcessedDataSize, IAsyncUserToken token, SocketAsyncEventArgs e)
-        {
-            if (alreadyProcessedDataSize >= totalReceivedDataSize)
-                return;
-
-            if (token.MessageSize == null)
-            {
-                // Read header
-                int headerSize = this.PacketProcessor.HeaderSize;
-
-                if (totalReceivedDataSize > headerSize)
-                {
-                    var headerData = new byte[headerSize];
-                    Buffer.BlockCopy(e.Buffer, dataStartOffset, headerData, 0, headerSize);
-                    var messageSize = this.PacketProcessor.GetLength(headerData);
-
-                    token.MessageSize = messageSize - headerSize;
-                    token.DataStartOffset = dataStartOffset + headerSize;
-
-                    ProcessReceivedData(token.DataStartOffset, totalReceivedDataSize, alreadyProcessedDataSize + headerSize, token, e);
-                }
-            }
-            else
-            {
-                // Read length
-                var messageSize = token.MessageSize.Value;
-                if (totalReceivedDataSize - alreadyProcessedDataSize >= messageSize)
-                {
-                    var messageData = new byte[messageSize];
-                    Buffer.BlockCopy(e.Buffer, dataStartOffset, messageData, 0, messageSize);
-                    this._receivingQueue.Add(messageData);
-
-                    token.DataStartOffset = dataStartOffset + messageSize;
-                    token.MessageSize = null;
-
-                    ProcessReceivedData(token.DataStartOffset, totalReceivedDataSize, alreadyProcessedDataSize + messageSize, token, e);
-                }
             }
         }
 

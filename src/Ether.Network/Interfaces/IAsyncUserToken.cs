@@ -19,6 +19,8 @@ namespace Ether.Network.Interfaces
 
         int ReceivedMessageBytesCount { get; set; }
 
+        int RemainingMessageBytesCount { get; set; }
+
         byte[] MessageData { get; set; }
 
         // ---------------

@@ -16,6 +16,8 @@ namespace Ether.Network.Data
 
         public int ReceivedMessageBytesCount { get; set; }
 
+        public int RemainingMessageBytesCount { get; set; }
+
         public byte[] MessageData { get; set; }
 
         //
