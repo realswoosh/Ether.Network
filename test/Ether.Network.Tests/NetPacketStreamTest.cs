@@ -2,6 +2,7 @@
 using Ether.Network.Packets;
 using Ether.Network.Tests.Helpers;
 using System;
+using System.IO;
 using System.Text;
 using Xunit;
 
@@ -14,43 +15,46 @@ namespace Ether.Network.Tests
         private static readonly int Int32Value = 452674652;
         private static readonly long Int64Value = 3465479740298342;
         private static readonly string StringValue = Helper.GenerateRandomString(543);
-        private static readonly byte[] ByteArray = new byte[] { ByteValue };
-        private static readonly byte[] ShortArray = BitConverter.GetBytes(ShortValue);
-        private static readonly byte[] Int32Array = BitConverter.GetBytes(Int32Value);
-        private static readonly byte[] Int64Array = BitConverter.GetBytes(Int64Value);
-        private static readonly byte[] StringByteArray = Encoding.ASCII.GetBytes(StringValue);
+
+        private static readonly byte[] ByteTestArray = new byte[] { ByteValue };
+        private static readonly byte[] ShortTestArray = BitConverter.GetBytes(ShortValue);
+        private static readonly byte[] Int32TestArray = BitConverter.GetBytes(Int32Value);
+        private static readonly byte[] Int64TestArray = BitConverter.GetBytes(Int64Value);
+        private static readonly byte[] StringTestArray = Encoding.ASCII.GetBytes(StringValue);
+
+        private static readonly byte[] ByteArrayValue = BitConverter.GetBytes(0xDEADBEEF);
 
         [Fact]
         public void ReadByte()
         {
-            this.TestRead<byte>(ByteArray, ByteValue);
+            this.TestRead<byte>(ByteTestArray, ByteValue);
         }
 
         [Fact]
         public void ReadInt16()
         {
-            this.TestRead<short>(ShortArray, ShortValue);
+            this.TestRead<short>(ShortTestArray, ShortValue);
         }
 
         [Fact]
         public void ReadInt32()
         {
-            this.TestRead<int>(Int32Array, Int32Value);
+            this.TestRead<int>(Int32TestArray, Int32Value);
         }
 
         [Fact]
         public void ReadInt64()
         {
-            this.TestRead<long>(Int64Array, Int64Value);
+            this.TestRead<long>(Int64TestArray, Int64Value);
         }
 
         [Fact]
-        public void ReadByteArray()
+        public void ReadString()
         {
             byte[] value = null;
 
-            using (INetPacketStream packetStream = new NetPacketStream(StringByteArray))
-                value = packetStream.Read<byte>(StringByteArray.Length);
+            using (INetPacketStream packetStream = new NetPacketStream(StringTestArray))
+                value = packetStream.Read<byte>(StringTestArray.Length);
 
             string convertedValue = Encoding.ASCII.GetString(value);
 
@@ -58,27 +62,51 @@ namespace Ether.Network.Tests
         }
 
         [Fact]
+        public void ReadByteArray()
+        {
+            byte[] value = null;
+
+            byte[] testValue = null;
+
+            using (MemoryStream memoryStream = new MemoryStream())
+            {
+                using (BinaryWriter binaryWriter = new BinaryWriter(memoryStream))
+                {
+                    binaryWriter.Write(ByteArrayValue.Length);
+                    binaryWriter.Write(ByteArrayValue);
+                }
+
+                testValue = memoryStream.ToArray();
+            }
+
+            using (INetPacketStream packetStream = new NetPacketStream(testValue))
+                value = packetStream.Read<byte[]>();
+
+            Assert.Equal(ByteArrayValue, value);
+        }
+
+        [Fact]
         public void WriteByte()
         {
-            this.TestWrite<byte>(ByteArray, ByteValue);
+            this.TestWrite<byte>(ByteTestArray, ByteValue);
         }
 
         [Fact]
         public void WriteShort()
         {
-            this.TestWrite<short>(ShortArray, ShortValue);
+            this.TestWrite<short>(ShortTestArray, ShortValue);
         }
 
         [Fact]
         public void WriteInt32()
         {
-            this.TestWrite<int>(Int32Array, Int32Value);
+            this.TestWrite<int>(Int32TestArray, Int32Value);
         }
 
         [Fact]
         public void WriteLong()
         {
-            this.TestWrite<long>(Int64Array, Int64Value);
+            this.TestWrite<long>(Int64TestArray, Int64Value);
         }
 
         [Fact]
@@ -99,6 +127,26 @@ namespace Ether.Network.Tests
             }
 
             Assert.Equal(StringValue, readString);
+        }
+
+        [Fact]
+        public void WriteByteArray()
+        {
+            byte[] readByteArray = null;
+            byte[] packetStreamBuffer = null;
+
+            using (INetPacketStream packetStream = new NetPacketStream())
+            {
+                packetStream.Write(ByteArrayValue);
+                packetStreamBuffer = packetStream.Buffer;
+            }
+
+            using (INetPacketStream readPacketStream = new NetPacketStream(packetStreamBuffer))
+            {
+                readByteArray = readPacketStream.Read<byte[]>();
+            }
+
+            Assert.Equal(ByteArrayValue, readByteArray);
         }
 
         private void TestRead<T>(byte[] input, T expected)
