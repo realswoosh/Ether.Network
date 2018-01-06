@@ -159,7 +159,6 @@ namespace Ether.Network
 
                     if (this.Socket.SendAsync(this._socketSendArgs))
                         this._autoSendEvent.WaitOne();
-
                 }
             }
         }

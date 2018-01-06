@@ -19,7 +19,6 @@ namespace Ether.Network.Utils
 
             if (!token.MessageSize.HasValue)
             {
-                Console.WriteLine("Read message size");
                 int headerSize = packetProcessor.HeaderSize;
 
                 if (token.ReceivedHeaderBytesCount == headerSize)
@@ -65,8 +64,6 @@ namespace Ether.Network.Utils
                     token.MessageSize = null;
                     token.ReceivedMessageBytesCount = messageSize;
                     alreadyProcessedDataSize += messageSize;
-
-                    //ProcessReceivedData(e, token, packetProcessor, alreadyProcessedDataSize + messageSize);
                 }
                 else if (token.ReceivedMessageBytesCount < messageSize)
                 {
@@ -79,8 +76,6 @@ namespace Ether.Network.Utils
                     token.ReceivedMessageBytesCount += remainingBuffer.Length;
                     token.DataStartOffset += remainingBuffer.Length;
                     alreadyProcessedDataSize += rest;
-
-                    //ProcessReceivedData(e, token, packetProcessor, alreadyProcessedDataSize + rest);
                 }
 
                 if (token.ReceivedMessageBytesCount == messageSize && token.MessageData != null)
