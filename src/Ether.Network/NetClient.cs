@@ -1,5 +1,4 @@
-﻿using Ether.Network.Data;
-using Ether.Network.Interfaces;
+﻿using Ether.Network.Interfaces;
 using Ether.Network.Packets;
 using Ether.Network.Utils;
 using System;
@@ -14,7 +13,7 @@ namespace Ether.Network
     /// <summary>
     /// Managed TCP client.
     /// </summary>
-    public abstract class NetClient : NetUser, INetClient, IDisposable
+    public abstract class NetClient : NetUser, INetClient
     {
         private static readonly IPacketProcessor DefaultPacketProcessor = new NetPacketProcessor();
 
@@ -60,9 +59,7 @@ namespace Ether.Network
             this._receivingQueueWorker = new Task(this.ProcessReceiveQueue);
         }
 
-        /// <summary>
-        /// Connect to the remote host.
-        /// </summary>
+        /// <inheritdoc />
         public void Connect()
         {
             if (this.IsConnected)
@@ -88,9 +85,7 @@ namespace Ether.Network
                 this.ProcessReceive(this._socketReceiveArgs);
         }
 
-        /// <summary>
-        /// Disconnects the <see cref="NetClient"/>.
-        /// </summary>
+        /// <inheritdoc />
         public void Disconnect()
         {
             if (this.IsConnected)
@@ -104,10 +99,7 @@ namespace Ether.Network
             }
         }
 
-        /// <summary>
-        /// Sends a packet through the network.
-        /// </summary>
-        /// <param name="packet"></param>
+        /// <inheritdoc />
         public override void Send(INetPacketStream packet)
         {
             if (!this.IsConnected)
@@ -150,16 +142,13 @@ namespace Ether.Network
             {
                 byte[] packetBuffer = this._sendingQueue.Take();
 
-                if (packetBuffer != null)
-                {
-                    if (packetBuffer.Length <= 0)
-                        continue;
+                if (packetBuffer == null || packetBuffer.Length <= 0)
+                    continue;
 
-                    this._socketSendArgs.SetBuffer(packetBuffer, 0, packetBuffer.Length);
+                this._socketSendArgs.SetBuffer(packetBuffer, 0, packetBuffer.Length);
 
-                    if (this.Socket.SendAsync(this._socketSendArgs))
-                        this._autoSendEvent.WaitOne();
-                }
+                if (this.Socket.SendAsync(this._socketSendArgs))
+                    this._autoSendEvent.WaitOne();
             }
         }
 
@@ -170,13 +159,13 @@ namespace Ether.Network
         {
             while (true)
             {
-                var buffer = this._receivingQueue.Take();
+                byte[] buffer = this._receivingQueue.Take();
 
-                if (buffer != null)
-                {
-                    using (var packet = this.PacketProcessor.CreatePacket(buffer))
-                        this.HandleMessage(packet);
-                }
+                if (buffer == null)
+                    continue;
+
+                using (INetPacketStream packet = this.PacketProcessor.CreatePacket(buffer))
+                    this.HandleMessage(packet);
             }
         }
 
@@ -186,18 +175,17 @@ namespace Ether.Network
         /// <param name="e"></param>
         private void ProcessReceive(SocketAsyncEventArgs e)
         {
-            if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
-            {
-                var user = e.UserToken as NetUser;
-                var token = user.Token;
+            if (e.SocketError != SocketError.Success || e.BytesTransferred <= 0 || !(e.UserToken is NetUser user))
+                return;
 
-                token.TotalReceivedDataSize = token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred;
-                SocketAsyncUtils.ProcessReceivedData(e, token, this.PacketProcessor, 0);
-                SocketAsyncUtils.ProcessNextReceive(e, token);
+            IAsyncUserToken token = user.Token;
 
-                if (!user.Socket.ReceiveAsync(e))
-                    this.ProcessReceive(e);
-            }
+            token.TotalReceivedDataSize = token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred;
+            SocketAsyncUtils.ProcessReceivedData(e, token, this.PacketProcessor, 0);
+            SocketAsyncUtils.ProcessNextReceive(e, token);
+
+            if (!user.Socket.ReceiveAsync(e))
+                this.ProcessReceive(e);
         }
 
         /// <summary>
@@ -210,25 +198,25 @@ namespace Ether.Network
             if (sender == null)
                 throw new ArgumentNullException(nameof(sender));
 
-            if (e.SocketError == SocketError.Success)
+            if (e.SocketError != SocketError.Success)
+                return;
+
+            switch (e.LastOperation)
             {
-                switch (e.LastOperation)
-                {
-                    case SocketAsyncOperation.Connect:
-                        this._autoConnectEvent.Set();
-                        this.OnConnected();
-                        break;
-                    case SocketAsyncOperation.Receive:
-                        this.ProcessReceive(e);
-                        break;
-                    case SocketAsyncOperation.Send:
-                        this._autoSendEvent.Set();
-                        break;
-                    case SocketAsyncOperation.Disconnect:
-                        this.OnDisconnected();
-                        break;
-                    default: throw new InvalidOperationException("Unexpected socket async operation.");
-                }
+                case SocketAsyncOperation.Connect:
+                    this._autoConnectEvent.Set();
+                    this.OnConnected();
+                    break;
+                case SocketAsyncOperation.Receive:
+                    this.ProcessReceive(e);
+                    break;
+                case SocketAsyncOperation.Send:
+                    this._autoSendEvent.Set();
+                    break;
+                case SocketAsyncOperation.Disconnect:
+                    this.OnDisconnected();
+                    break;
+                default: throw new InvalidOperationException("Unexpected socket async operation.");
             }
         }
 

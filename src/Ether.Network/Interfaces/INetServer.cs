@@ -3,7 +3,7 @@
 namespace Ether.Network.Interfaces
 {
     /// <summary>
-    /// NetServer interface.
+    /// Provides a simple and scalable TCP server.
     /// </summary>
     public interface INetServer : IDisposable
     {

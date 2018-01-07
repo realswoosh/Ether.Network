@@ -2,12 +2,10 @@
 using Ether.Network.Exceptions;
 using Ether.Network.Interfaces;
 using Ether.Network.Packets;
-using Ether.Network.Server;
 using Ether.Network.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -15,13 +13,11 @@ using System.Threading.Tasks;
 
 namespace Ether.Network
 {
-    /// <summary>
-    /// Creates a new TCP managed server.
-    /// </summary>
-    public abstract class NetServer<T> : NetConnection, INetServer, IDisposable where T : NetUser, new()
+    /// <inheritdoc />
+    public abstract class NetServer<T> : NetConnection, INetServer where T : NetUser, new()
     {
         private static readonly IPacketProcessor DefaultPacketProcessor = new NetPacketProcessor();
-        private static readonly string AllInterfaces = "0.0.0.0";
+        private const string AllInterfaces = "0.0.0.0";
 
         private readonly ManualResetEvent _manualResetEvent;
         private readonly AutoResetEvent _autoSendEvent;
@@ -43,9 +39,7 @@ namespace Ether.Network
         /// </summary>
         protected virtual IPacketProcessor PacketProcessor => DefaultPacketProcessor;
 
-        /// <summary>
-        /// Gets the <see cref="NetServer{T}"/> running state.
-        /// </summary>
+        /// <inheritdoc />
         public bool IsRunning { get; private set; }
 
         /// <summary>
@@ -70,9 +64,7 @@ namespace Ether.Network
             this._sendQueueTask = new Task(this.ProcessSendQueue);
         }
 
-        /// <summary>
-        /// Initialize and start the server.
-        /// </summary>
+        /// <inheritdoc />
         public void Start()
         {
             if (this.IsRunning)
@@ -81,11 +73,11 @@ namespace Ether.Network
             if (this.Configuration.Port <= 0)
                 throw new EtherConfigurationException($"{this.Configuration.Port} is not a valid port.");
 
-            var address = this.Configuration.Host == AllInterfaces ? IPAddress.Any : this.Configuration.Address;
+            IPAddress address = this.Configuration.Host == AllInterfaces ? IPAddress.Any : this.Configuration.Address;
             if (address == null)
                 throw new EtherConfigurationException($"Invalid host : {this.Configuration.Host}");
 
-            for (int i = 0; i < this.Configuration.MaximumNumberOfConnections; i++)
+            for (var i = 0; i < this.Configuration.MaximumNumberOfConnections; i++)
             {
                 this._readPool.Push(NetUtils.CreateSocketAsync(null, this.Configuration.BufferSize, this.IO_Completed));
                 this._writePool.Push(NetUtils.CreateSocketAsync(null, this.Configuration.BufferSize, this.IO_Completed));
@@ -101,32 +93,27 @@ namespace Ether.Network
             this._manualResetEvent.WaitOne();
         }
 
-        /// <summary>
-        /// Stop the server.
-        /// </summary>
+        /// <inheritdoc />
         public void Stop()
         {
-            if (this.IsRunning)
-            {
-                this.IsRunning = false;
-                this._manualResetEvent.Set();
-            }
+            if (!this.IsRunning)
+                return;
+
+            this.IsRunning = false;
+            this._manualResetEvent.Set();
         }
 
-        /// <summary>
-        /// Disconnects the client from this server.
-        /// </summary>
-        /// <param name="clientId">Client unique Id</param>
+        /// <inheritdoc />
         public void DisconnectClient(Guid clientId)
         {
             if (!this._clients.ContainsKey(clientId))
                 throw new EtherClientNotFoundException(clientId);
 
-            if (this._clients.TryRemove(clientId, out T removedClient))
-            {
-                removedClient.Dispose();
-                this.OnClientDisconnected(removedClient);
-            }
+            if (!this._clients.TryRemove(clientId, out T removedClient))
+                return;
+
+            removedClient.Dispose();
+            this.OnClientDisconnected(removedClient);
         }
 
         /// <summary>
@@ -180,9 +167,9 @@ namespace Ether.Network
                     {
                         var client = new T
                         {
-                            Socket = e.AcceptSocket
+                            Socket = e.AcceptSocket,
+                            SendAction = this.SendMessageAction
                         };
-                        client.SendAction = this.SendMessageAction;
                         client.Token.Socket = client.Socket;
                         client.Token.MessageHandler = messageData => this.HandleIncomingMessages(client, messageData);
 
@@ -234,7 +221,7 @@ namespace Ether.Network
         {
             while (true)
             {
-                var message = this._messageQueue.Take();
+                MessageData message = this._messageQueue.Take();
 
                 if (message.User != null && message.Message != null)
                     this.SendMessage(message);
@@ -247,7 +234,7 @@ namespace Ether.Network
         /// <param name="messageData"></param>
         private void SendMessage(MessageData messageData)
         {
-            var writeEventArgs = this._writePool.Pop();
+            SocketAsyncEventArgs writeEventArgs = this._writePool.Pop();
 
             if (writeEventArgs != null)
             {
@@ -272,7 +259,9 @@ namespace Ether.Network
         {
             if (e.SocketError == SocketError.Success && e.BytesTransferred > 0)
             {
-                var connection = e.UserToken as NetUser;
+                if (!(e.UserToken is NetUser connection))
+                    return;
+
                 IAsyncUserToken token = connection.Token;
 
                 token.TotalReceivedDataSize = token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred;
@@ -294,7 +283,8 @@ namespace Ether.Network
         /// <param name="e"></param>
         private void CloseConnection(SocketAsyncEventArgs e)
         {
-            var connection = e.UserToken as INetUser;
+            if (!(e.UserToken is INetUser connection))
+                return;
 
             connection.Dispose();
             this._readPool.Push(e);
@@ -308,7 +298,7 @@ namespace Ether.Network
         /// <param name="messageData">Incoming message data</param>
         private void HandleIncomingMessages(INetUser user, byte[] messageData)
         {
-            using (var packet = this.PacketProcessor.CreatePacket(messageData))
+            using (INetPacketStream packet = this.PacketProcessor.CreatePacket(messageData))
                 user.HandleMessage(packet);
         }
         
@@ -352,7 +342,7 @@ namespace Ether.Network
                     this._readPool?.Dispose();
                     this._writePool?.Dispose();
 
-                    foreach (var client in this._clients)
+                    foreach (KeyValuePair<Guid, T> client in this._clients)
                         client.Value.Dispose();
 
                     this._clients.Clear();

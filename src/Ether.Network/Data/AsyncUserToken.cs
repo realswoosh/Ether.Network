@@ -4,51 +4,58 @@ using Ether.Network.Interfaces;
 
 namespace Ether.Network.Data
 {
+    /// <inheritdoc />
     internal sealed class AsyncUserToken : IAsyncUserToken
     {
+        /// <inheritdoc />
         public int ReceivedHeaderBytesCount { get; set; }
 
-        public byte[] MessageHeaderData { get; set; }
+        /// <inheritdoc />
+        public byte[] HeaderData { get; set; }
 
+        /// <inheritdoc />
         public int? MessageSize { get; set; }
 
-        public int DataCursorIndex { get; set; }
-
+        /// <inheritdoc />
         public int ReceivedMessageBytesCount { get; set; }
 
-        public int RemainingMessageBytesCount { get; set; }
-
+        /// <inheritdoc />
         public byte[] MessageData { get; set; }
 
-        //
-
+        /// <inheritdoc />
         public int DataStartOffset { get; set; }
 
+        /// <inheritdoc />
         public int NextReceiveOffset { get; set; }
 
+        /// <inheritdoc />
         public int TotalReceivedDataSize { get; set; }
 
-        public byte[] TempData { get; set; }
-
+        /// <inheritdoc />
         public Socket Socket { get; set; }
 
+        /// <inheritdoc />
         public Action<byte[]> MessageHandler { get; set; }
 
+        /// <summary>
+        /// Creates a new <see cref="AsyncUserToken"/> instance.
+        /// </summary>
         public AsyncUserToken()
             : this(null)
         {
         }
 
-        public AsyncUserToken(Action<byte[]> messageHandlerAction)
+        /// <summary>
+        /// Creates a new <see cref="AsyncUserToken"/> instance.
+        /// </summary>
+        /// <param name="messageHandlerAction">Action to execute when a message is received.</param>
+        private AsyncUserToken(Action<byte[]> messageHandlerAction)
         {
             this.ReceivedHeaderBytesCount = 0;
-            this.MessageSize = null;
-            this.DataCursorIndex = 0;
-
-            this.MessageData = null;
             this.ReceivedMessageBytesCount = 0;
-            //
-
+            this.HeaderData = null;
+            this.MessageSize = null;
+            this.MessageData = null;
             this.DataStartOffset = 0;
             this.NextReceiveOffset = 0;
             this.TotalReceivedDataSize = 0;

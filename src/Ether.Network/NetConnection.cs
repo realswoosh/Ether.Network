@@ -7,18 +7,14 @@ namespace Ether.Network
     /// <summary>
     /// Represents a network connection.
     /// </summary>
-    public abstract class NetConnection : INetConnection, IDisposable
+    public abstract class NetConnection : INetConnection
     {
         private bool _disposedValue;
 
-        /// <summary>
-        /// Gets or sets the connection's Id.
-        /// </summary>
+        /// <inheritdoc />
         public Guid Id { get; }
 
-        /// <summary>
-        /// Gets or sets the connection's socket.
-        /// </summary>
+        /// <inheritdoc />
         public Socket Socket { get; internal set; }
 
         /// <summary>
@@ -52,15 +48,15 @@ namespace Ether.Network
         /// <param name="disposing"></param>
         protected virtual void Dispose(bool disposing)
         {
-            if (!_disposedValue)
-            {
-                if (disposing)
-                {
-                    this.Socket.Dispose();
-                }
+            if (this._disposedValue)
+                return;
 
-                _disposedValue = true;
+            if (disposing)
+            {
+                this.Socket.Dispose();
             }
+
+            this._disposedValue = true;
         }
     }
 }
