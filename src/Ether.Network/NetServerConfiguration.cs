@@ -1,9 +1,9 @@
-﻿using Ether.Network.Interfaces;
-using Ether.Network.Exceptions;
+﻿using Ether.Network.Exceptions;
+using Ether.Network.Interfaces;
 using Ether.Network.Utils;
 using System.Net;
 
-namespace Ether.Network.Server
+namespace Ether.Network
 {
     /// <summary>
     /// Provide properties to configuration a <see cref="NetServer{T}"/>.
@@ -22,8 +22,8 @@ namespace Ether.Network.Server
         /// </summary>
         public int Port
         {
-            get { return this._port; }
-            set { this.SetValue(ref this._port, value); }
+            get => this._port;
+            set => this.SetValue(ref this._port, value);
         }
     
         /// <summary>
@@ -31,8 +31,8 @@ namespace Ether.Network.Server
         /// </summary>
         public string Host
         {
-            get { return this._host; }
-            set { this.SetValue(ref this._host, value); }
+            get => this._host;
+            set => this.SetValue(ref this._host, value);
         }
 
         /// <summary>
@@ -40,8 +40,8 @@ namespace Ether.Network.Server
         /// </summary>
         public int Backlog
         {
-            get { return this._backlog; }
-            set { this.SetValue(ref this._backlog, value); }
+            get => this._backlog;
+            set => this.SetValue(ref this._backlog, value);
         }
 
         /// <summary>
@@ -49,8 +49,8 @@ namespace Ether.Network.Server
         /// </summary>
         public int MaximumNumberOfConnections
         {
-            get { return this._maximumNumberOfConnections; }
-            set { this.SetValue(ref this._maximumNumberOfConnections, value); }
+            get => this._maximumNumberOfConnections;
+            set => this.SetValue(ref this._maximumNumberOfConnections, value);
         }
 
         /// <summary>
@@ -58,22 +58,14 @@ namespace Ether.Network.Server
         /// </summary>
         public int BufferSize
         {
-            get { return this._bufferSize; }
-            set { this.SetValue(ref this._bufferSize, value); }
+            get => this._bufferSize;
+            set => this.SetValue(ref this._bufferSize, value);
         }
 
         /// <summary>
         /// Gets the listening address.
         /// </summary>
         internal IPAddress Address => NetUtils.GetIpAddress(this._host);
-
-        /// <summary>
-        /// Creates a new <see cref="NetServerConfiguration"/>.
-        /// </summary>
-        public NetServerConfiguration()
-            : this(null)
-        {
-        }
 
         /// <summary>
         /// Creates a new <see cref="NetServerConfiguration"/>.

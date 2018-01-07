@@ -12,12 +12,12 @@ namespace Ether.Network.Exceptions
         /// </summary>
         /// <param name="message"></param>
         public EtherException(string message)
-            : this(message, null)
+            : base(message, null)
         {
         }
 
         /// <summary>
-        /// Creates a new <see cref="EtherException"/> with an inner exception.
+        /// Creates a new <see cref="EtherException"/>.
         /// </summary>
         /// <param name="message"></param>
         /// <param name="innerException"></param>

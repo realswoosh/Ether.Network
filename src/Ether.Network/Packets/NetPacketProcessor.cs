@@ -17,7 +17,7 @@ namespace Ether.Network.Packets
         /// <returns>Packet length</returns>
         public int GetLength(byte[] buffer)
         {
-            int packetLength = 0;
+            var packetLength = 0;
 
             using (var memoryStream = new MemoryStream(buffer))
             using (var binaryReader = new BinaryReader(memoryStream))
