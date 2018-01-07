@@ -1,6 +1,7 @@
 ﻿using System;
 using Ether.Network.Packets;
 using System.Linq;
+using System.Threading;
 
 namespace SampleClient
 {
@@ -13,12 +14,13 @@ namespace SampleClient
 
             Console.WriteLine("Enter a message and press enter...");
             int i = 0;
+            var random = new Random();
 
             try
             {
                 while (true)
                 {
-                    string input = $"{GenerateRandomString(20)} - {i.ToString()}";
+                    string input = /*Console.ReadLine();*/ $"{GenerateRandomString(random.Next(50))} - {i.ToString()}";
 
                     if (input == "quit")
                     {
@@ -31,12 +33,13 @@ namespace SampleClient
                         {
                             packet.Write(input);
 
-                            Console.WriteLine($"Sending input: '{input}' ; packet length: '{packet.Buffer.Length}'");
+                            //Console.WriteLine($"Sending input: '{input}' ; packet length: '{packet.Buffer.Length}'");
                             client.Send(packet);
                         }
                     }
 
                     i++;
+                    Thread.Sleep(25);
                 }
             }
             catch (Exception e)
