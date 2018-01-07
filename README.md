@@ -16,12 +16,15 @@ This library is coded with C# using .NET Core framework to target Windows and Li
 - .NET Core 1.0 (netstandard1.3)
 - .NET Core 2.0 (netstandard2.0)
 - .NET Framework 4.5
+- .NET Framework 4.6
 
 ## How to install
 
-Create a .NETCore project and add the nuget package: `Ether.Network` or you can do it manually :
+Create a .NETCore project and add the nuget package: `Ether.Network` or you can do it manually in you NuGet console package manager :
 
-`Install-Package Ether.Network` in your package manager console.
+```
+$> Install-Package Ether.Network
+```
 
 ## How to use
 
@@ -58,7 +61,7 @@ namespace ServerApp
 
         	protected override void OnClientConnected(ClientConnection connection)
         	{
-            		Console.WriteLine("New client connected!");
+            	Console.WriteLine("New client connected!");
 
            		connection.SendFirstPacket();
         	}

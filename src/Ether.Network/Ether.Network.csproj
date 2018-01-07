@@ -2,9 +2,9 @@
 
   <PropertyGroup>
     <Description>Simple and fast network library.</Description>
-    <Copyright>Filipe GOMES PEIXOTO © 2016-2017</Copyright>
+    <Copyright>Filipe GOMES PEIXOTO © 2016-2018</Copyright>
     <AssemblyTitle>Ether.Network</AssemblyTitle>
-    <VersionPrefix>2.1.0</VersionPrefix>
+    <VersionPrefix>3.0.0</VersionPrefix>
     <Authors>Filipe Gomes Peixoto</Authors>
     <TargetFrameworks>netstandard2.0;netstandard1.3;net45;net46</TargetFrameworks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

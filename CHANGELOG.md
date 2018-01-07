@@ -18,6 +18,7 @@
 - `NetClient` sending process is using a queue.
 - `NetClient` message handler process is using a queue.
 - `NetServer` inherits from `NetConnection`.
+- Replace recursive methods with while loops.
 
 ### Fix
 
