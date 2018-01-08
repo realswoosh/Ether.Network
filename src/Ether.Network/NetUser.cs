@@ -1,12 +1,16 @@
 ﻿using Ether.Network.Data;
 using Ether.Network.Interfaces;
 using System;
+using System.Collections.Generic;
 
 namespace Ether.Network
 {
     /// <inheritdoc />
     public abstract class NetUser : NetConnection, INetUser
     {
+        /// <inheritdoc />
+        public INetServer Server { get; internal set; }
+
         /// <summary>
         /// Gets the user token.
         /// </summary>
@@ -22,18 +26,23 @@ namespace Ether.Network
         /// </summary>
         protected NetUser()
         {
+            this.Server = null;
             this.Token = new AsyncUserToken();
         }
 
         /// <inheritdoc />
         public virtual void HandleMessage(INetPacketStream packet)
         {
+            // Nothing to do.
         }
 
         /// <inheritdoc />
-        public virtual void Send(INetPacketStream packet)
-        {
-            this.SendAction?.Invoke(this, packet.Buffer);
-        }
+        public virtual void Send(INetPacketStream packet) => this.SendAction?.Invoke(this, packet.Buffer);
+
+        /// <inheritdoc />
+        public void SendTo(IEnumerable<INetUser> users, INetPacketStream packet) => this.Server?.SendTo(users, packet);
+
+        /// <inheritdoc />
+        public void SendToAll(INetPacketStream packet) => this.Server?.SendToAll(packet);
     }
 }

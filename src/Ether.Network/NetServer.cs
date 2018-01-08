@@ -45,7 +45,7 @@ namespace Ether.Network
         /// <summary>
         /// Gets the connected client.
         /// </summary>
-        public IReadOnlyCollection<T> Clients => this._clients.Values as IReadOnlyCollection<T>;
+        public IEnumerable<T> Clients => this._clients.Values;
 
         /// <summary>
         /// Creates a new <see cref="NetServer{T}"/> instance.
@@ -80,7 +80,8 @@ namespace Ether.Network
             for (var i = 0; i < this.Configuration.MaximumNumberOfConnections; i++)
             {
                 this._readPool.Push(NetUtils.CreateSocketAsync(null, this.Configuration.BufferSize, this.IO_Completed));
-                this._writePool.Push(NetUtils.CreateSocketAsync(null, this.Configuration.BufferSize, this.IO_Completed));
+                this._writePool.Push(NetUtils.CreateSocketAsync(null, this.Configuration.BufferSize,
+                    this.IO_Completed));
             }
 
             this.Initialize();
@@ -116,6 +117,18 @@ namespace Ether.Network
             this.OnClientDisconnected(removedClient);
         }
 
+        /// <inheritdoc />
+        public void SendTo(IEnumerable<INetUser> users, INetPacketStream packet)
+        {
+            foreach (INetUser user in users)
+            {
+                user.Send(packet);
+            }
+        }
+
+        /// <inheritdoc />
+        public void SendToAll(INetPacketStream packet) => this.SendTo(this.Clients, packet);
+
         /// <summary>
         /// Initialize the server resourrces.
         /// </summary>
@@ -124,13 +137,13 @@ namespace Ether.Network
         /// <summary>
         /// Triggered when a new client is connected to the server.
         /// </summary>
-        /// <param name="connection"></param>
+        /// <param name="connection">Connected client</param>
         protected abstract void OnClientConnected(T connection);
 
         /// <summary>
         /// Triggered when a client disconnects from the server.
         /// </summary>
-        /// <param name="connection"></param>
+        /// <param name="connection">Disconnected client</param>
         protected abstract void OnClientDisconnected(T connection);
 
         /// <summary>
@@ -163,25 +176,26 @@ namespace Ether.Network
                 {
                     SocketAsyncEventArgs readArgs = this._readPool.Pop();
 
-                    if (readArgs != null)
+                    if (readArgs == null)
+                        return;
+
+                    var client = new T
                     {
-                        var client = new T
-                        {
-                            Socket = e.AcceptSocket,
-                            SendAction = this.SendMessageAction
-                        };
-                        client.Token.Socket = client.Socket;
-                        client.Token.MessageHandler = messageData => this.HandleIncomingMessages(client, messageData);
+                        Socket = e.AcceptSocket,
+                        Server = this,
+                        SendAction = this.SendMessageAction
+                    };
+                    client.Token.Socket = client.Socket;
+                    client.Token.MessageHandler = messageData => this.HandleIncomingMessages(client, messageData);
 
-                        if (!this._clients.TryAdd(client.Id, client))
-                            throw new EtherException($"Client {client.Id} already exists in client list.");
+                    if (!this._clients.TryAdd(client.Id, client))
+                        throw new EtherException($"Client {client.Id} already exists in client list.");
 
-                        this.OnClientConnected(client);
-                        readArgs.UserToken = client;
+                    this.OnClientConnected(client);
+                    readArgs.UserToken = client;
 
-                        if (!e.AcceptSocket.ReceiveAsync(readArgs))
-                            this.ProcessReceive(readArgs);
-                    }
+                    if (!e.AcceptSocket.ReceiveAsync(readArgs))
+                        this.ProcessReceive(readArgs);
                 }
             }
             catch (Exception exception)
@@ -211,7 +225,10 @@ namespace Ether.Network
         /// <param name="message">Message</param>
         private void SendMessageAction(INetUser user, byte[] message)
         {
-            this._messageQueue.Add(new MessageData(user, message));
+            if (this._clients.ContainsKey(user.Id))
+            {
+                this._messageQueue.Add(new MessageData(user, message));
+            }
         }
 
         /// <summary>
@@ -288,7 +305,7 @@ namespace Ether.Network
 
             connection.Dispose();
             this._readPool.Push(e);
-            this.OnClientDisconnected(connection as T);
+            this.DisconnectClient(connection.Id);
         }
 
         /// <summary>
@@ -301,7 +318,7 @@ namespace Ether.Network
             using (INetPacketStream packet = this.PacketProcessor.CreatePacket(messageData))
                 user.HandleMessage(packet);
         }
-        
+
         /// <summary>
         /// Triggered when a <see cref="SocketAsyncEventArgs"/> async operation is completed.
         /// </summary>
@@ -323,7 +340,8 @@ namespace Ether.Network
                 case SocketAsyncOperation.Send:
                     this.ProcessSend(e);
                     break;
-                case SocketAsyncOperation.Disconnect: break;
+                case SocketAsyncOperation.Disconnect:
+                    break;
                 default:
                     throw new InvalidOperationException("Unexpected SocketAsyncOperation.");
             }
