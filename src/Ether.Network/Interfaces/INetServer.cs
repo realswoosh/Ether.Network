@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Ether.Network.Interfaces
 {
@@ -27,5 +28,18 @@ namespace Ether.Network.Interfaces
         /// </summary>
         /// <param name="clientId">Client unique id</param>
         void DisconnectClient(Guid clientId);
+
+        /// <summary>
+        /// Sends a packet to a list of connected users.
+        /// </summary>
+        /// <param name="users">List of users.</param>
+        /// <param name="packet">Packet to send.</param>
+        void SendTo(IEnumerable<INetUser> users, INetPacketStream packet);
+
+        /// <summary>
+        /// Sends a packet to every connected user.
+        /// </summary>
+        /// <param name="packet">Packet to send.</param>
+        void SendToAll(INetPacketStream packet);
     }
 }

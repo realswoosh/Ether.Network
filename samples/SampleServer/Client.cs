@@ -26,14 +26,14 @@ namespace SampleServer
         /// <param name="packet"></param>
         public override void HandleMessage(INetPacketStream packet)
         {
-            string value = packet.Read<string>();
+            var value = packet.Read<string>();
 
             Console.WriteLine("Received '{1}' from {0}", this.Id, value);
 
             using (var p = new NetPacket())
             {
                 p.Write(string.Format("OK: '{0}'", value));
-                this.Send(p);
+                this.Server.SendToAll(p);
             }
         }
     }
