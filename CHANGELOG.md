@@ -4,12 +4,16 @@
 
 ## [3.0.0] - Unknow release date
 
+** Breaking Changes **
+
 ### Added
 
-- Add `INetPacketStream` interface and `NetPacketStream` implementation
-- Add `NetUser` interface. Inherits from `NetConnection`
-- Add `OnSocketError()` method to `NetClient` (PR [#42](https://github.com/Eastrall/Ether.Network/pull/42))
-- Add all interfaces support to `NetServer` (PR [#42](https://github.com/Eastrall/Ether.Network/pull/42))
+- Add `INetPacketStream` interface and `NetPacketStream` implementation for read/write packets.
+- Add `NetUser` interface. Inherits from `NetConnection`.
+- Add `OnSocketError()` method to `NetClient`. (PR [#42](https://github.com/Eastrall/Ether.Network/pull/42))
+- Add all interfaces support to `NetServer`. (PR [#42](https://github.com/Eastrall/Ether.Network/pull/42))
+- Add support for reading byte arrays with `INetPacketStream`. (PR [#48](https://github.com/Eastrall/Ether.Network/pull/48))
+- Add broadcast system for `NetServer`. (PR [#52](https://github.com/Eastrall/Ether.Network/pull/52))
 
 ### Changed
 
@@ -18,7 +22,7 @@
 - `NetClient` sending process is using a queue.
 - `NetClient` message handler process is using a queue.
 - `NetServer` inherits from `NetConnection`.
-- Replace recursive methods with while loops.
+- Replace recursive methods with `while` loops.
 
 ### Fix
 
