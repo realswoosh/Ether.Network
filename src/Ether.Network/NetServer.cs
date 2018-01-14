@@ -91,7 +91,9 @@ namespace Ether.Network
 
             this.IsRunning = true;
             this._sendQueueTask.Start();
-            this._manualResetEvent.WaitOne();
+
+            if (this.Configuration.Blocking)
+                this._manualResetEvent.WaitOne();
         }
 
         /// <inheritdoc />
@@ -101,7 +103,9 @@ namespace Ether.Network
                 return;
 
             this.IsRunning = false;
-            this._manualResetEvent.Set();
+
+            if (this.Configuration.Blocking)
+                this._manualResetEvent.Set();
         }
 
         /// <inheritdoc />

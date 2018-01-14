@@ -15,6 +15,7 @@ namespace SampleServer
             this.Configuration.MaximumNumberOfConnections = 100;
             this.Configuration.Host = "127.0.0.1";
             this.Configuration.BufferSize = 8;
+            this.Configuration.Blocking = true;
         }
 
         /// <summary>
