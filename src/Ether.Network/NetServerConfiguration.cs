@@ -11,11 +11,21 @@ namespace Ether.Network
     public sealed class NetServerConfiguration
     {
         private readonly INetServer _server;
+        private bool _blocking;
         private int _port;
         private int _backlog;
         private int _bufferSize;
         private int _maximumNumberOfConnections;
         private string _host;
+
+        /// <summary>
+        /// Gets or sets the blocking state of the server.
+        /// </summary>
+        public bool Blocking
+        {
+            get => this._blocking;
+            set => this.SetValue(ref this._blocking, value);
+        }
 
         /// <summary>
         /// Gets or sets the port.
@@ -74,6 +84,7 @@ namespace Ether.Network
         internal NetServerConfiguration(INetServer server)
         {
             this._server = server;
+            this.Blocking = true;
             this.Port = 0;
             this.Host = null;
             this.Backlog = 50;
