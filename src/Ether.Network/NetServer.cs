@@ -117,8 +117,8 @@ namespace Ether.Network
             if (!this._clients.TryRemove(clientId, out T removedClient))
                 return;
 
-            removedClient.Dispose();
             this.OnClientDisconnected(removedClient);
+            removedClient.Dispose();
         }
 
         /// <inheritdoc />
@@ -306,8 +306,7 @@ namespace Ether.Network
         {
             if (!(e.UserToken is INetUser connection))
                 return;
-
-            connection.Dispose();
+            
             this._readPool.Push(e);
             this.DisconnectClient(connection.Id);
         }
