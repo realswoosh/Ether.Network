@@ -87,9 +87,9 @@ namespace Ether.Network
             this.Initialize();
             this.Socket.Bind(new IPEndPoint(address, this.Configuration.Port));
             this.Socket.Listen(this.Configuration.Backlog);
+            this.IsRunning = true;
             this.StartAccept(NetUtils.CreateSocketAsync(null, -1, this.IO_Completed));
 
-            this.IsRunning = true;
             this._sendQueueTask.Start();
 
             if (this.Configuration.Blocking)
@@ -163,6 +163,9 @@ namespace Ether.Network
         {
             if (e.AcceptSocket != null)
                 e.AcceptSocket = null;
+
+            if (!IsRunning)
+                return;
 
             if (!this.Socket.AcceptAsync(e))
                 this.ProcessAccept(e);
@@ -305,6 +308,9 @@ namespace Ether.Network
         private void CloseConnection(SocketAsyncEventArgs e)
         {
             if (!(e.UserToken is INetUser connection))
+                return;
+
+            if (!IsRunning)
                 return;
             
             this._readPool.Push(e);
