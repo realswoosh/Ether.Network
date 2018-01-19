@@ -53,7 +53,11 @@ namespace Ether.Network
 
             if (disposing)
             {
-                this.Socket.Dispose();
+                if (this.Socket != null)
+                {
+                    this.Socket.Dispose();
+                    this.Socket = null;
+                }
             }
 
             this._disposedValue = true;

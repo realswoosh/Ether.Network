@@ -1,5 +1,6 @@
 ﻿using Ether.Network.Data;
 using Ether.Network.Exceptions;
+using Ether.Network.Extensions;
 using Ether.Network.Interfaces;
 using Ether.Network.Packets;
 using Ether.Network.Utils;
@@ -25,7 +26,8 @@ namespace Ether.Network
         private readonly BlockingCollection<MessageData> _messageQueue;
         private readonly SocketAsyncEventArgsPool _readPool;
         private readonly SocketAsyncEventArgsPool _writePool;
-        private readonly Task _sendQueueTask;
+        private readonly CancellationTokenSource _sendQueueTaskCancelTokenSource;
+        private readonly CancellationToken _sendQueueCancelToken;
 
         private bool _isDisposed;
 
@@ -53,7 +55,6 @@ namespace Ether.Network
         protected NetServer()
         {
             this.Configuration = new NetServerConfiguration(this);
-            this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this._clients = new ConcurrentDictionary<Guid, T>();
             this._messageQueue = new BlockingCollection<MessageData>();
             this._readPool = new SocketAsyncEventArgsPool();
@@ -61,7 +62,10 @@ namespace Ether.Network
 
             this._manualResetEvent = new ManualResetEvent(false);
             this._autoSendEvent = new AutoResetEvent(false);
-            this._sendQueueTask = new Task(this.ProcessSendQueue);
+
+            this._sendQueueTaskCancelTokenSource = new CancellationTokenSource();
+            this._sendQueueCancelToken = this._sendQueueTaskCancelTokenSource.Token;
+            Task.Factory.StartNew(this.ProcessSendQueue, this._sendQueueCancelToken);
         }
 
         /// <inheritdoc />
@@ -80,18 +84,16 @@ namespace Ether.Network
             for (var i = 0; i < this.Configuration.MaximumNumberOfConnections; i++)
             {
                 this._readPool.Push(NetUtils.CreateSocketAsync(null, this.Configuration.BufferSize, this.IO_Completed));
-                this._writePool.Push(NetUtils.CreateSocketAsync(null, this.Configuration.BufferSize,
-                    this.IO_Completed));
+                this._writePool.Push(NetUtils.CreateSocketAsync(null, this.Configuration.BufferSize, this.IO_Completed));
             }
 
             this.Initialize();
+            this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this.Socket.Bind(new IPEndPoint(address, this.Configuration.Port));
             this.Socket.Listen(this.Configuration.Backlog);
             this.IsRunning = true;
             this.StartAccept(NetUtils.CreateSocketAsync(null, -1, this.IO_Completed));
-
-            this._sendQueueTask.Start();
-
+            
             if (this.Configuration.Blocking)
                 this._manualResetEvent.WaitOne();
         }
@@ -104,15 +106,27 @@ namespace Ether.Network
 
             this.IsRunning = false;
 
+            this.ClearClients();
+            this._readPool.Clear();
+            this._writePool.Clear();
+            
             if (this.Configuration.Blocking)
                 this._manualResetEvent.Set();
+            
+            if (this.Socket != null)
+            {
+                this.Socket.Dispose();
+                this.Socket = null;
+            }
+
+            this._messageQueue.Clear();
         }
 
         /// <inheritdoc />
         public void DisconnectClient(Guid clientId)
         {
             if (!this._clients.ContainsKey(clientId))
-                throw new EtherClientNotFoundException(clientId);
+                return;
 
             if (!this._clients.TryRemove(clientId, out T removedClient))
                 return;
@@ -203,15 +217,13 @@ namespace Ether.Network
 
                     if (!e.AcceptSocket.ReceiveAsync(readArgs))
                         this.ProcessReceive(readArgs);
+
+                    this.StartAccept(e);
                 }
             }
             catch (Exception exception)
             {
                 this.OnError(exception);
-            }
-            finally
-            {
-                this.StartAccept(e);
             }
         }
 
@@ -245,10 +257,18 @@ namespace Ether.Network
         {
             while (true)
             {
-                MessageData message = this._messageQueue.Take();
-
-                if (message.User != null && message.Message != null)
-                    this.SendMessage(message);
+                try
+                {
+                    MessageData message = this._messageQueue.Take(this._sendQueueCancelToken);
+                    
+                    if (message.User != null && message.Message != null)
+                        this.SendMessage(message);
+                }
+                catch
+                {
+                    if (this._sendQueueCancelToken.IsCancellationRequested)
+                        break;
+                }
             }
         }
 
@@ -312,7 +332,7 @@ namespace Ether.Network
 
             if (!IsRunning)
                 return;
-            
+
             this._readPool.Push(e);
             this.DisconnectClient(connection.Id);
         }
@@ -326,6 +346,17 @@ namespace Ether.Network
         {
             using (INetPacketStream packet = this.PacketProcessor.CreatePacket(messageData))
                 user.HandleMessage(packet);
+        }
+
+        /// <summary>
+        /// Clear client's list.
+        /// </summary>
+        private void ClearClients()
+        {
+            foreach (T client in this.Clients)
+                client.Dispose();
+
+            this._clients.Clear();
         }
 
         /// <summary>
@@ -349,8 +380,6 @@ namespace Ether.Network
                 case SocketAsyncOperation.Send:
                     this.ProcessSend(e);
                     break;
-                case SocketAsyncOperation.Disconnect:
-                    break;
                 default:
                     throw new InvalidOperationException("Unexpected SocketAsyncOperation.");
             }
@@ -366,13 +395,12 @@ namespace Ether.Network
             {
                 if (disposing)
                 {
+                    this._sendQueueTaskCancelTokenSource.Cancel(false);
                     this._readPool?.Dispose();
                     this._writePool?.Dispose();
-
-                    foreach (KeyValuePair<Guid, T> client in this._clients)
-                        client.Value.Dispose();
-
-                    this._clients.Clear();
+                    this.ClearClients();
+                    this._messageQueue.Clear();
+                    this._messageQueue.Dispose();
                     this._isDisposed = true;
                 }
             }

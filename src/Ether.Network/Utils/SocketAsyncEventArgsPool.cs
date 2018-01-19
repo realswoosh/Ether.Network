@@ -52,6 +52,17 @@ namespace Ether.Network.Utils
         }
 
         /// <summary>
+        /// Clear the pool.
+        /// </summary>
+        public void Clear()
+        {
+            foreach (SocketAsyncEventArgs e in this._socketPool)
+                e.Dispose();
+
+            this._socketPool.Clear();
+        }
+
+        /// <summary>
         /// Disposes resources.
         /// </summary>
         /// <param name="disposing"></param>
@@ -62,10 +73,7 @@ namespace Ether.Network.Utils
 
             if (disposing)
             {
-                foreach (SocketAsyncEventArgs e in this._socketPool)
-                    e.Dispose();
-
-                this._socketPool.Clear();
+                this.Clear();
             }
 
             this._disposedValue = true;
