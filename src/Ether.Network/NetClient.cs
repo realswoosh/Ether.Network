@@ -26,6 +26,8 @@ namespace Ether.Network
         private readonly BlockingCollection<byte[]> _receivingQueue;
         private readonly Task _sendingQueueWorker;
         private readonly Task _receivingQueueWorker;
+        private readonly CancellationTokenSource _cancelTokenSource;
+        private readonly CancellationToken _cancelToken;
 
         private bool _isDisposed;
 
@@ -55,8 +57,10 @@ namespace Ether.Network
             this._autoSendEvent = new AutoResetEvent(false);
             this._sendingQueue = new BlockingCollection<byte[]>();
             this._receivingQueue = new BlockingCollection<byte[]>();
-            this._sendingQueueWorker = new Task(this.ProcessSendingQueue);
-            this._receivingQueueWorker = new Task(this.ProcessReceiveQueue);
+            this._cancelTokenSource = new CancellationTokenSource();
+            this._cancelToken = this._cancelTokenSource.Token;
+            this._sendingQueueWorker = new Task(this.ProcessSendingQueue, this._cancelToken);
+            this._receivingQueueWorker = new Task(this.ProcessReceiveQueue, this._cancelToken);
         }
 
         /// <inheritdoc />
@@ -74,7 +78,7 @@ namespace Ether.Network
             SocketError errorCode = connectSocket.SocketError;
 
             if (errorCode != SocketError.Success)
-                throw new SocketException((Int32)errorCode);
+                throw new SocketException((int) errorCode);
 
             this._sendingQueueWorker.Start();
             this._receivingQueueWorker.Start();
@@ -97,6 +101,9 @@ namespace Ether.Network
                 this.Socket.Dispose();
 #endif
             }
+
+            this._cancelTokenSource.Cancel(false);
+            this.OnDisconnected();
         }
 
         /// <inheritdoc />
@@ -140,15 +147,23 @@ namespace Ether.Network
         {
             while (true)
             {
-                byte[] packetBuffer = this._sendingQueue.Take();
+                try
+                {
+                    byte[] packetBuffer = this._sendingQueue.Take(this._cancelToken);
 
-                if (packetBuffer == null || packetBuffer.Length <= 0)
-                    continue;
+                    if (packetBuffer == null || packetBuffer.Length <= 0)
+                        continue;
 
-                this._socketSendArgs.SetBuffer(packetBuffer, 0, packetBuffer.Length);
+                    this._socketSendArgs.SetBuffer(packetBuffer, 0, packetBuffer.Length);
 
-                if (this.Socket.SendAsync(this._socketSendArgs))
-                    this._autoSendEvent.WaitOne();
+                    if (this.Socket.SendAsync(this._socketSendArgs))
+                        this._autoSendEvent.WaitOne();
+                }
+                catch (Exception e)
+                {
+                    if ((e is AggregateException || e is OperationCanceledException) && this._cancelTokenSource.IsCancellationRequested)
+                        break;
+                }
             }
         }
 
@@ -159,13 +174,21 @@ namespace Ether.Network
         {
             while (true)
             {
-                byte[] buffer = this._receivingQueue.Take();
+                try
+                {
+                    byte[] buffer = this._receivingQueue.Take(this._cancelToken);
 
-                if (buffer == null)
-                    continue;
+                    if (buffer == null)
+                        continue;
 
-                using (INetPacketStream packet = this.PacketProcessor.CreatePacket(buffer))
-                    this.HandleMessage(packet);
+                    using (INetPacketStream packet = this.PacketProcessor.CreatePacket(buffer))
+                        this.HandleMessage(packet);
+                }
+                catch (Exception e)
+                {
+                    if ((e is AggregateException || e is OperationCanceledException) && this._cancelTokenSource.IsCancellationRequested)
+                        break;
+                }
             }
         }
 
@@ -175,17 +198,24 @@ namespace Ether.Network
         /// <param name="e"></param>
         private void ProcessReceive(SocketAsyncEventArgs e)
         {
-            if (e.SocketError != SocketError.Success || e.BytesTransferred <= 0 || !(e.UserToken is NetUser user))
-                return;
+            if (e.SocketError == SocketError.Success)
+            {
+                if (e.BytesTransferred <= 0 || !(e.UserToken is NetUser user))
+                    return;
 
-            IAsyncUserToken token = user.Token;
+                IAsyncUserToken token = user.Token;
 
-            token.TotalReceivedDataSize = token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred;
-            SocketAsyncUtils.ProcessReceivedData(e, token, this.PacketProcessor, 0);
-            SocketAsyncUtils.ProcessNextReceive(e, token);
+                token.TotalReceivedDataSize = token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred;
+                SocketAsyncUtils.ProcessReceivedData(e, token, this.PacketProcessor, 0);
+                SocketAsyncUtils.ProcessNextReceive(e, token);
 
-            if (!user.Socket.ReceiveAsync(e))
-                this.ProcessReceive(e);
+                if (!user.Socket.ReceiveAsync(e))
+                    this.ProcessReceive(e);
+            }
+            else if (e.SocketError == SocketError.ConnectionReset)
+            {
+                this.Disconnect();
+            }
         }
 
         /// <summary>
@@ -200,7 +230,7 @@ namespace Ether.Network
 
             if (e.SocketError == SocketError.ConnectionReset)
             {
-                this.OnDisconnected();
+                this.Disconnect();
                 return;
             }
 
@@ -220,7 +250,7 @@ namespace Ether.Network
                     this._autoSendEvent.Set();
                     break;
                 case SocketAsyncOperation.Disconnect:
-                    this.OnDisconnected();
+                    this.Disconnect();
                     break;
                 default: throw new InvalidOperationException("Unexpected socket async operation.");
             }
