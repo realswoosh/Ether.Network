@@ -198,6 +198,12 @@ namespace Ether.Network
             if (sender == null)
                 throw new ArgumentNullException(nameof(sender));
 
+            if (e.SocketError == SocketError.ConnectionReset)
+            {
+                this.OnDisconnected();
+                return;
+            }
+
             if (e.SocketError != SocketError.Success)
                 return;
 
