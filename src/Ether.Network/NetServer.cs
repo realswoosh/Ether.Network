@@ -347,6 +347,8 @@ namespace Ether.Network
         {            
             using (INetPacketStream packet = this.PacketProcessor.CreatePacket(this.PacketProcessor.IncludeHeader ? user.Token.HeaderData.Concat(messageData).ToArray() : messageData))
                 user.HandleMessage(packet);
+
+            user.Token.HeaderData = null;
         }
 
         /// <summary>

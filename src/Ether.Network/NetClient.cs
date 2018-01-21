@@ -184,6 +184,8 @@ namespace Ether.Network
 
                     using (INetPacketStream packet = this.PacketProcessor.CreatePacket(this.PacketProcessor.IncludeHeader ? Token.HeaderData.Concat(buffer).ToArray() : buffer))
                         this.HandleMessage(packet);
+
+                    Token.HeaderData = null;
                 }
                 catch (Exception e)
                 {
