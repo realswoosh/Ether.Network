@@ -7,6 +7,7 @@ using Ether.Network.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -342,9 +343,9 @@ namespace Ether.Network
         /// </summary>
         /// <param name="user">Current user</param>
         /// <param name="messageData">Incoming message data</param>
-        private void HandleIncomingMessages(INetUser user, byte[] messageData)
-        {
-            using (INetPacketStream packet = this.PacketProcessor.CreatePacket(messageData))
+        private void HandleIncomingMessages(T user, byte[] messageData)
+        {            
+            using (INetPacketStream packet = this.PacketProcessor.CreatePacket(this.PacketProcessor.IncludeHeader ? user.Token.HeaderData.Concat(messageData).ToArray() : messageData))
                 user.HandleMessage(packet);
         }
 
