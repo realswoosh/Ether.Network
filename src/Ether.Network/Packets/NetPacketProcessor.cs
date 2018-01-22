@@ -11,6 +11,11 @@ namespace Ether.Network.Packets
         public int HeaderSize => sizeof(int);
 
         /// <summary>
+        /// Gets a value indicating whether the <see cref="NetPacket"/> header should be put in front of the buffer.
+        /// </summary>
+        public bool IncludeHeader => false;
+
+        /// <summary>
         /// Gets the <see cref="NetPacket"/> length size.
         /// </summary>
         /// <param name="buffer">Incoming buffer</param>

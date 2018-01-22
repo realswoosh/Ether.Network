@@ -3,6 +3,7 @@ using Ether.Network.Packets;
 using Ether.Network.Utils;
 using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -181,8 +182,10 @@ namespace Ether.Network
                     if (buffer == null)
                         continue;
 
-                    using (INetPacketStream packet = this.PacketProcessor.CreatePacket(buffer))
+                    using (INetPacketStream packet = this.PacketProcessor.CreatePacket(this.PacketProcessor.IncludeHeader ? Token.HeaderData.Concat(buffer).ToArray() : buffer))
                         this.HandleMessage(packet);
+
+                    Token.HeaderData = null;
                 }
                 catch (Exception e)
                 {

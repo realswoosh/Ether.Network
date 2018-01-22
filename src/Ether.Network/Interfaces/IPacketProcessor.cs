@@ -9,6 +9,11 @@
         /// Gets the packet header size.
         /// </summary>
         int HeaderSize { get; }
+        
+        /// <summary>
+        /// Gets a value indicating whether to put the packet header in front of the packet <see cref="INetPacketStream.Buffer"/>.
+        /// </summary>
+        bool IncludeHeader { get; }
 
         /// <summary>
         /// Gets the packet length.

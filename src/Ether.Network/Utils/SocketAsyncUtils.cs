@@ -28,10 +28,9 @@ namespace Ether.Network.Utils
                         int messageSize = packetProcessor.GetLength(token.HeaderData);
 
                         token.MessageSize = messageSize - headerSize;
-                        token.HeaderData = null;
                         token.ReceivedHeaderBytesCount = 0;
                     }
-                    else if (token.TotalReceivedDataSize > headerSize && token.HeaderData == null)
+                    else if (token.TotalReceivedDataSize > headerSize)
                     {
                         token.HeaderData = NetUtils.GetPacketBuffer(e.Buffer, dataStartOffset, headerSize);
                         token.DataStartOffset = dataStartOffset + headerSize;
