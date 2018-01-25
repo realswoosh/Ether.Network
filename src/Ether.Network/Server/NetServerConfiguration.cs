@@ -5,7 +5,7 @@ using System.Net;
 namespace Ether.Network.Server
 {
     /// <summary>
-    /// Provide properties to configuration a <see cref="NetServer{T}"/>.
+    /// Provide properties to configure a <see cref="NetServer{T}"/>.
     /// </summary>
     public sealed class NetServerConfiguration
     {
