@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net.Sockets;
 
-namespace Ether.Network.Interfaces
+namespace Ether.Network.Common.Data
 {
     /// <summary>
     /// Defines the user's async token that contains all informations about data receiving process.

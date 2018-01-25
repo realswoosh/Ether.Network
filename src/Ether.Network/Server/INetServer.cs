@@ -1,7 +1,9 @@
-﻿using System;
+﻿using Ether.Network.Common;
+using Ether.Network.Packets;
+using System;
 using System.Collections.Generic;
 
-namespace Ether.Network.Interfaces
+namespace Ether.Network.Server
 {
     /// <summary>
     /// Provides a simple and scalable TCP server.

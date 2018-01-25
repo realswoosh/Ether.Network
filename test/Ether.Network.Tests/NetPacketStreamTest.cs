@@ -1,5 +1,4 @@
-﻿using Ether.Network.Interfaces;
-using Ether.Network.Packets;
+﻿using Ether.Network.Packets;
 using Ether.Network.Tests.Helpers;
 using System;
 using System.IO;

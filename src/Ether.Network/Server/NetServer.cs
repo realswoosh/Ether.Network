@@ -1,7 +1,7 @@
-﻿using Ether.Network.Data;
+﻿using Ether.Network.Common;
+using Ether.Network.Common.Data;
 using Ether.Network.Exceptions;
 using Ether.Network.Extensions;
-using Ether.Network.Interfaces;
 using Ether.Network.Packets;
 using Ether.Network.Utils;
 using System;
@@ -13,7 +13,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Ether.Network
+namespace Ether.Network.Server
 {
     /// <inheritdoc />
     public abstract class NetServer<T> : NetConnection, INetServer where T : NetUser, new()

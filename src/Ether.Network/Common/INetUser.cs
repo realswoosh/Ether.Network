@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using Ether.Network.Packets;
+using Ether.Network.Server;
+using System.Collections.Generic;
 
-namespace Ether.Network.Interfaces
+namespace Ether.Network.Common
 {
     /// <summary>
     /// Defines the behavior of an Ether.Network connected user.

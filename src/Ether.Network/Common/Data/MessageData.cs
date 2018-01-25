@@ -1,7 +1,7 @@
-﻿using Ether.Network.Interfaces;
+﻿using Ether.Network.Common;
 using System;
 
-namespace Ether.Network.Data
+namespace Ether.Network.Common.Data
 {
     /// <summary>
     /// Defines a structure that handles an incoming message.

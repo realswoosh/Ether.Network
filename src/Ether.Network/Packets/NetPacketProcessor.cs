@@ -1,5 +1,4 @@
-﻿using Ether.Network.Interfaces;
-using System.IO;
+﻿using System.IO;
 
 namespace Ether.Network.Packets
 {

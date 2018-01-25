@@ -1,5 +1,4 @@
-﻿using Ether.Network.Interfaces;
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 

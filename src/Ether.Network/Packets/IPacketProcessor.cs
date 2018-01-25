@@ -1,4 +1,4 @@
-﻿namespace Ether.Network.Interfaces
+﻿namespace Ether.Network.Packets
 {
     /// <summary>
     /// Defines the behavior of a <see cref="IPacketProcessor"/>.
