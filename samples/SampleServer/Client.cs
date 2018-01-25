@@ -1,7 +1,6 @@
-﻿using Ether.Network;
-using System;
+﻿using Ether.Network.Common;
 using Ether.Network.Packets;
-using Ether.Network.Interfaces;
+using System;
 
 namespace SampleServer
 {

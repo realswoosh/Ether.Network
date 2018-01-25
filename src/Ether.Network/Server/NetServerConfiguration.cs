@@ -1,9 +1,8 @@
 ﻿using Ether.Network.Exceptions;
-using Ether.Network.Interfaces;
 using Ether.Network.Utils;
 using System.Net;
 
-namespace Ether.Network
+namespace Ether.Network.Server
 {
     /// <summary>
     /// Provide properties to configuration a <see cref="NetServer{T}"/>.

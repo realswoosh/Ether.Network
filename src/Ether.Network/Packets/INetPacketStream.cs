@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Ether.Network.Interfaces
+namespace Ether.Network.Packets
 {
     /// <summary>
     /// Ether.Network Packet stream interface.

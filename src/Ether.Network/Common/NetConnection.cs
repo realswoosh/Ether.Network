@@ -1,8 +1,7 @@
-﻿using Ether.Network.Interfaces;
-using System;
+﻿using System;
 using System.Net.Sockets;
 
-namespace Ether.Network
+namespace Ether.Network.Common
 {
     /// <summary>
     /// Represents a network connection.

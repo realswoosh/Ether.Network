@@ -1,9 +1,10 @@
-﻿using Ether.Network.Data;
-using Ether.Network.Interfaces;
+﻿using Ether.Network.Common.Data;
+using Ether.Network.Packets;
+using Ether.Network.Server;
 using System;
 using System.Collections.Generic;
 
-namespace Ether.Network
+namespace Ether.Network.Common
 {
     /// <inheritdoc />
     public abstract class NetUser : NetConnection, INetUser

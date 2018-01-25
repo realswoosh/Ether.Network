@@ -1,6 +1,7 @@
-﻿using System;
+﻿using Ether.Network.Packets;
+using System;
 
-namespace Ether.Network.Interfaces
+namespace Ether.Network.Client
 {
     /// <summary>
     /// <see cref="INetClient"/> interface.

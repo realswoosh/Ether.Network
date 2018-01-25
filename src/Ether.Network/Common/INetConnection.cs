@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net.Sockets;
 
-namespace Ether.Network.Interfaces
+namespace Ether.Network.Common
 {
     /// <summary>
     /// Describes the behavior of a Ether.Network connection

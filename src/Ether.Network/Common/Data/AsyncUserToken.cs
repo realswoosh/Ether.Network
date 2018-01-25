@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Net.Sockets;
-using Ether.Network.Interfaces;
 
-namespace Ether.Network.Data
+namespace Ether.Network.Common.Data
 {
     /// <inheritdoc />
     internal sealed class AsyncUserToken : IAsyncUserToken
