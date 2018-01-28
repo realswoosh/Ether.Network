@@ -3,9 +3,9 @@ using System.Linq;
 
 namespace Ether.Network.Tests.Helpers
 {
-    public static partial class Helper
+    public static class Helper
     {
-        private const string CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        private const string Characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
         /// <summary>
         /// Generates a random string.
@@ -17,7 +17,7 @@ namespace Ether.Network.Tests.Helpers
             var random = new Random();
 
             return new string(
-                Enumerable.Repeat(CHARACTERS, count)
+                Enumerable.Repeat(Characters, count)
                           .Select(s => s[random.Next(s.Length)])
                           .ToArray());
         }
