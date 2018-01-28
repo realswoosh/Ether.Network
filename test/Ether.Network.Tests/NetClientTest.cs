@@ -100,6 +100,7 @@ namespace Ether.Network.Tests
 
                 client.Disconnect();
                 Assert.False(client.ConnectedToServer);
+                client.Dispose();
             }
         }
     }
