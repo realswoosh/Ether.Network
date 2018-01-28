@@ -27,37 +27,37 @@ namespace Ether.Network.Tests
         }
 
         [Fact]
-        public async void ClientSendDataToServer()
+        public async Task ClientSendDataToServer()
         {
             await SendDataToServer(1);
         }
 
         [Fact]
-        public async void ClientSendDataToServer50()
+        public async Task ClientSendDataToServer50()
         {
             await SendDataToServer(50);
         }
 
         [Fact]
-        public async void ClientSendDataToServer100()
+        public async Task ClientSendDataToServer100()
         {
             await SendDataToServer(100);
         }
 
         [Fact]
-        public async void ClientSendDataToServer200()
+        public async Task ClientSendDataToServer200()
         {
             await SendDataToServer(200);
         }
 
         [Fact]
-        public async void ClientSendDataToServer500()
+        public async Task ClientSendDataToServer500()
         {
             await SendDataToServer(500);
         }
 
         [Fact]
-        public async void ClientSendDataToServer1000()
+        public async Task ClientSendDataToServer1000()
         {
             await SendDataToServer(1000);
         }
