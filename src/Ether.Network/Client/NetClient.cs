@@ -244,8 +244,8 @@ namespace Ether.Network.Client
             switch (e.LastOperation)
             {
                 case SocketAsyncOperation.Connect:
-                    this._autoConnectEvent.Set();
                     this.OnConnected();
+                    this._autoConnectEvent.Set();
                     break;
                 case SocketAsyncOperation.Receive:
                     this.ProcessReceive(e);
