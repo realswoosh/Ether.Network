@@ -14,24 +14,16 @@ namespace Ether.Network.Utils
             {
                 if (e == null)
                     throw new ArgumentNullException(nameof(e));
-
-                int dataStartOffset = token.DataStartOffset;
-
+                
                 if (alreadyProcessedDataSize >= token.TotalReceivedDataSize)
                     return;
 
+                int dataStartOffset = token.DataStartOffset;
+                int headerSize = packetProcessor.HeaderSize;
+
                 if (!token.MessageSize.HasValue)
                 {
-                    int headerSize = packetProcessor.HeaderSize;
-
-                    if (token.ReceivedHeaderBytesCount == headerSize)
-                    {
-                        int messageSize = packetProcessor.GetLength(token.HeaderData);
-
-                        token.MessageSize = messageSize - headerSize;
-                        token.ReceivedHeaderBytesCount = 0;
-                    }
-                    else if (token.TotalReceivedDataSize > headerSize && token.HeaderData == null)
+                    if (token.TotalReceivedDataSize > headerSize && token.HeaderData == null)
                     {
                         token.HeaderData = NetUtils.GetPacketBuffer(e.Buffer, dataStartOffset, headerSize);
                         token.DataStartOffset = dataStartOffset + headerSize;
@@ -50,9 +42,19 @@ namespace Ether.Network.Utils
                         alreadyProcessedDataSize += rest;
                     }
                 }
-                else
+
+                if (token.ReceivedHeaderBytesCount == headerSize)
+                {
+                    int messageSize = packetProcessor.GetLength(token.HeaderData);
+
+                    token.MessageSize = messageSize - headerSize;
+                    token.ReceivedHeaderBytesCount = 0;
+                }
+
+                if (token.MessageSize.HasValue)
                 {
                     int messageSize = token.MessageSize.Value;
+                    dataStartOffset = token.DataStartOffset;
 
                     if (token.TotalReceivedDataSize - alreadyProcessedDataSize >= messageSize && token.MessageData == null)
                     {
