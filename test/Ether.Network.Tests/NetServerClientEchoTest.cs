@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Ether.Network.Tests
 {
-    public class NetClientTest
+    public class NetServerClientEchoTest
     {
         [Fact]
         public void ConnectClientToServer()
