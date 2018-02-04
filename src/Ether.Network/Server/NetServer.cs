@@ -345,11 +345,18 @@ namespace Ether.Network.Server
         /// <param name="user">Current user</param>
         /// <param name="messageData">Incoming message data</param>
         private void HandleIncomingMessages(T user, byte[] messageData)
-        {            
-            using (INetPacketStream packet = this.PacketProcessor.CreatePacket(this.PacketProcessor.IncludeHeader ? user.Token.HeaderData.Concat(messageData).ToArray() : messageData))
-                user.HandleMessage(packet);
+        {
+            byte[] packetData = this.PacketProcessor.IncludeHeader
+                ? user.Token.HeaderData.Concat(messageData).ToArray()
+                : messageData;
 
             user.Token.HeaderData = null;
+
+            Task.Run(() =>
+            {
+                using (INetPacketStream packet = this.PacketProcessor.CreatePacket(packetData))
+                    user.HandleMessage(packet);
+            });
         }
 
         /// <summary>
