@@ -20,7 +20,7 @@ namespace SampleClient
             {
                 while (true)
                 {
-                    string input = Console.ReadLine(); //$"{GenerateRandomString(random.Next(50))} - {i.ToString()}";
+                    string input = /*Console.ReadLine();*/ $"{GenerateRandomString(random.Next(50))} - {i.ToString()}";
 
                     if (input == "quit")
                     {
@@ -39,7 +39,7 @@ namespace SampleClient
                     }
 
                     i++;
-                    Thread.Sleep(25);
+                    Thread.Sleep(500);
                 }
             }
             catch (Exception e)

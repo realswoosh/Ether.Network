@@ -183,10 +183,16 @@ namespace Ether.Network.Client
                     if (buffer == null)
                         continue;
 
-                    using (INetPacketStream packet = this.PacketProcessor.CreatePacket(this.PacketProcessor.IncludeHeader ? Token.HeaderData.Concat(buffer).ToArray() : buffer))
-                        this.HandleMessage(packet);
+                    byte[] packetData = this.PacketProcessor.IncludeHeader
+                        ? this.Token.HeaderData.Concat(buffer).ToArray()
+                        : buffer;
+                    this.Token.HeaderData = null;
 
-                    Token.HeaderData = null;
+                    Task.Run(() =>
+                    {
+                        using (INetPacketStream packet = this.PacketProcessor.CreatePacket(packetData))
+                            this.HandleMessage(packet);
+                    });
                 }
                 catch (Exception e)
                 {
