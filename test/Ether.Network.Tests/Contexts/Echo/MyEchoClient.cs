@@ -11,15 +11,23 @@ namespace Ether.Network.Tests.Contexts.Echo
     public class MyEchoClient : NetClient
     {
         private readonly Random _random;
-        
-        public ICollection<string> SendedData { get; private set; }
+        private readonly List<string> _sendedData;
+
+        public ICollection<string> SendedData
+        {
+            get
+            {
+                this._sendedData.Sort(StringComparer.CurrentCulture);
+                return this._sendedData;
+            }    
+        }
 
         public bool ConnectedToServer { get; private set; }
 
         public MyEchoClient(string host, int port, int bufferSize) 
             : base(host, port, bufferSize)
         {
-            this.SendedData = new List<string>();
+            this._sendedData = new List<string>();
             this._random = new Random();
         }
 
@@ -47,7 +55,7 @@ namespace Ether.Network.Tests.Contexts.Echo
         {
             string message = $"{Helper.GenerateRandomString(this._random.Next(50))}";
 
-            this.SendedData.Add(message);
+            this._sendedData.Add(message);
 
             using (var packet = new NetPacket())
             {

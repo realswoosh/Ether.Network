@@ -11,7 +11,7 @@ matrix:
             - TEST_FRAMEWORK=netcoreapp1.0
         - os: linux
           sudo: required
-          dotnet: 2.0.2
+          dotnet: 2.1.4
           env: 
             - BUILD_FRAMEWORK=netstandard2.0
             - TEST_FRAMEWORK=netcoreapp2.0

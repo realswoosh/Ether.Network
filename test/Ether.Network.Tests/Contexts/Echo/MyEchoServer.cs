@@ -41,18 +41,27 @@ namespace Ether.Network.Tests.Contexts.Echo
 
     public class EchoClient : NetUser
     {
-        public ICollection<string> ReceivedData { get; private set; }
+        private readonly List<string> _receivedData;
+
+        public ICollection<string> ReceivedData
+        {
+            get
+            {
+                this._receivedData.Sort(StringComparer.CurrentCulture);
+                return this._receivedData;
+            }
+        }
 
         public EchoClient()
         {
-            this.ReceivedData = new List<string>();
+            this._receivedData = new List<string>();
         }
 
         public override void HandleMessage(INetPacketStream packet)
         {
-            string receivedString = packet.Read<string>();
+            var receivedString = packet.Read<string>();
 
-            this.ReceivedData.Add(receivedString);
+            this._receivedData.Add(receivedString);
         }
     }
 }
