@@ -85,7 +85,7 @@ namespace Ether.Network.Tests
                 // Wait for message
                 while (clientFromServer.ReceivedData.Count < messagesToSend)
                     await Task.Delay(10);
-
+                
                 Assert.Equal(client.SendedData.Count, clientFromServer.ReceivedData.Count);
 
                 for (var i = 0; i < messagesToSend; i++)
