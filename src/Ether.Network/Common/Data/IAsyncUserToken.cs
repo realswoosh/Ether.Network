@@ -39,16 +39,6 @@ namespace Ether.Network.Common.Data
         int DataStartOffset { get; set; }
 
         /// <summary>
-        /// Gets or sets the next offset where we should start to read the data.
-        /// </summary>
-        int NextReceiveOffset { get; set; }
-
-        /// <summary>
-        /// Gets or sets the total amount of recieved bytes during the receive operation.
-        /// </summary>
-        int TotalReceivedDataSize { get; set; }
-
-        /// <summary>
         /// Gets or sets the user's socket.
         /// </summary>
         Socket Socket { get; set; }
@@ -57,5 +47,10 @@ namespace Ether.Network.Common.Data
         /// Gets or sets the action to invoke when we receive a message.
         /// </summary>
         Action<byte[]> MessageHandler { get; set; }
+
+        /// <summary>
+        /// Resets the <see cref="IAsyncUserToken"/>.
+        /// </summary>
+        void Reset();
     }
 }

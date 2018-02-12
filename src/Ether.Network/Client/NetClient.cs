@@ -214,10 +214,11 @@ namespace Ether.Network.Client
                     return;
 
                 IAsyncUserToken token = user.Token;
+                SocketAsyncUtils.ReceiveData(e, token, this.PacketProcessor);
 
-                token.TotalReceivedDataSize = token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred;
-                SocketAsyncUtils.ProcessReceivedData(e, token, this.PacketProcessor, 0);
-                SocketAsyncUtils.ProcessNextReceive(e, token);
+                //token.TotalReceivedDataSize = token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred;
+                //SocketAsyncUtils.ProcessReceivedData(e, token, this.PacketProcessor, 0);
+                //SocketAsyncUtils.ProcessNextReceive(e, token);
 
                 if (!user.Socket.ReceiveAsync(e))
                     this.ProcessReceive(e);

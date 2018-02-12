@@ -309,10 +309,11 @@ namespace Ether.Network.Server
                     return;
 
                 IAsyncUserToken token = connection.Token;
+                SocketAsyncUtils.ReceiveData(e, token, this.PacketProcessor);
 
-                token.TotalReceivedDataSize = token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred;
-                SocketAsyncUtils.ProcessReceivedData(e, token, this.PacketProcessor, 0);
-                SocketAsyncUtils.ProcessNextReceive(e, token);
+                //token.TotalReceivedDataSize = token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred;
+                //SocketAsyncUtils.ProcessReceivedData(e, token, this.PacketProcessor, 0);
+                //SocketAsyncUtils.ProcessNextReceive(e, token);
 
                 if (!token.Socket.ReceiveAsync(e))
                     this.ProcessReceive(e);
@@ -346,17 +347,17 @@ namespace Ether.Network.Server
         /// <param name="messageData">Incoming message data</param>
         private void HandleIncomingMessages(T user, byte[] messageData)
         {
-            byte[] packetData = this.PacketProcessor.IncludeHeader
-                ? user.Token.HeaderData.Concat(messageData).ToArray()
-                : messageData;
+            //byte[] packetData = this.PacketProcessor.IncludeHeader
+            //    ? user.Token.HeaderData.Concat(messageData).ToArray()
+            //    : messageData;
 
-            user.Token.HeaderData = null;
+            //user.Token.HeaderData = null;
 
-            Task.Run(() =>
-            {
-                using (INetPacketStream packet = this.PacketProcessor.CreatePacket(packetData))
+            //Task.Run(() =>
+            //{
+                using (INetPacketStream packet = this.PacketProcessor.CreatePacket(messageData))
                     user.HandleMessage(packet);
-            });
+            //});
         }
 
         /// <summary>
