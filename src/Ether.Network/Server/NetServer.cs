@@ -7,7 +7,6 @@ using Ether.Network.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -85,7 +84,8 @@ namespace Ether.Network.Server
             for (var i = 0; i < this.Configuration.MaximumNumberOfConnections; i++)
             {
                 this._readPool.Push(NetUtils.CreateSocketAsync(null, this.Configuration.BufferSize, this.IO_Completed));
-                this._writePool.Push(NetUtils.CreateSocketAsync(null, this.Configuration.BufferSize, this.IO_Completed));
+                this._writePool.Push(NetUtils.CreateSocketAsync(null, this.Configuration.BufferSize,
+                    this.IO_Completed));
             }
 
             this.Initialize();
@@ -95,7 +95,7 @@ namespace Ether.Network.Server
             this.Socket.Listen(this.Configuration.Backlog);
             this.IsRunning = true;
             this.StartAccept(NetUtils.CreateSocketAsync(null, -1, this.IO_Completed));
-            
+
             if (this.Configuration.Blocking)
                 this._manualResetEvent.WaitOne();
         }
@@ -111,10 +111,10 @@ namespace Ether.Network.Server
             this.ClearClients();
             this._readPool.Clear();
             this._writePool.Clear();
-            
+
             if (this.Configuration.Blocking)
                 this._manualResetEvent.Set();
-            
+
             if (this.Socket != null)
             {
                 this.Socket.Dispose();
@@ -180,7 +180,7 @@ namespace Ether.Network.Server
             if (e.AcceptSocket != null)
                 e.AcceptSocket = null;
 
-            if (!IsRunning)
+            if (!this.IsRunning)
                 return;
 
             if (!this.Socket.AcceptAsync(e))
@@ -262,7 +262,7 @@ namespace Ether.Network.Server
                 try
                 {
                     MessageData message = this._messageQueue.Take(this._sendQueueCancelToken);
-                    
+
                     if (message.User != null && message.Message != null)
                         this.SendMessage(message);
                 }
@@ -311,10 +311,6 @@ namespace Ether.Network.Server
                 IAsyncUserToken token = connection.Token;
                 SocketAsyncUtils.ReceiveData(e, token, this.PacketProcessor);
 
-                //token.TotalReceivedDataSize = token.NextReceiveOffset - token.DataStartOffset + e.BytesTransferred;
-                //SocketAsyncUtils.ProcessReceivedData(e, token, this.PacketProcessor, 0);
-                //SocketAsyncUtils.ProcessNextReceive(e, token);
-
                 if (!token.Socket.ReceiveAsync(e))
                     this.ProcessReceive(e);
             }
@@ -333,7 +329,7 @@ namespace Ether.Network.Server
             if (!(e.UserToken is INetUser connection))
                 return;
 
-            if (!IsRunning)
+            if (!this.IsRunning)
                 return;
 
             this._readPool.Push(e);
@@ -347,17 +343,8 @@ namespace Ether.Network.Server
         /// <param name="messageData">Incoming message data</param>
         private void HandleIncomingMessages(T user, byte[] messageData)
         {
-            //byte[] packetData = this.PacketProcessor.IncludeHeader
-            //    ? user.Token.HeaderData.Concat(messageData).ToArray()
-            //    : messageData;
-
-            //user.Token.HeaderData = null;
-
-            //Task.Run(() =>
-            //{
-                using (INetPacketStream packet = this.PacketProcessor.CreatePacket(messageData))
-                    user.HandleMessage(packet);
-            //});
+            using (INetPacketStream packet = this.PacketProcessor.CreatePacket(messageData))
+                user.HandleMessage(packet);
         }
 
         /// <summary>
