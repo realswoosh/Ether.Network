@@ -83,9 +83,8 @@ namespace Ether.Network.Server
 
             for (var i = 0; i < this.Configuration.MaximumNumberOfConnections; i++)
             {
-                this._readPool.Push(NetUtils.CreateSocketAsync(null, this.Configuration.BufferSize, this.IO_Completed));
-                this._writePool.Push(NetUtils.CreateSocketAsync(null, this.Configuration.BufferSize,
-                    this.IO_Completed));
+                this._readPool.Push(NetUtils.CreateSocketAsync(null, this.IO_Completed, this.Configuration.BufferSize));
+                this._writePool.Push(NetUtils.CreateSocketAsync(null, this.IO_Completed, this.Configuration.BufferSize));
             }
 
             this.Initialize();
@@ -94,7 +93,7 @@ namespace Ether.Network.Server
             this.Socket.Bind(new IPEndPoint(address, this.Configuration.Port));
             this.Socket.Listen(this.Configuration.Backlog);
             this.IsRunning = true;
-            this.StartAccept(NetUtils.CreateSocketAsync(null, -1, this.IO_Completed));
+            this.StartAccept(NetUtils.CreateSocketAsync(null, this.IO_Completed));
 
             if (this.Configuration.Blocking)
                 this._manualResetEvent.WaitOne();

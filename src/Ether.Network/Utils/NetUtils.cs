@@ -61,10 +61,9 @@ namespace Ether.Network.Utils
         /// Creates a new <see cref="SocketAsyncEventArgs"/> instance.
         /// </summary>
         /// <param name="userToken">User token</param>
-        /// <param name="bufferSize">Buffer size</param>
         /// <param name="completedAction">Completed operation action</param>
         /// <returns></returns>
-        public static SocketAsyncEventArgs CreateSocketAsync(object userToken, int bufferSize, EventHandler<SocketAsyncEventArgs> completedAction)
+        public static SocketAsyncEventArgs CreateSocketAsync(object userToken, EventHandler<SocketAsyncEventArgs> completedAction)
         {
             var socketAsync = new SocketAsyncEventArgs
             {
@@ -72,6 +71,20 @@ namespace Ether.Network.Utils
             };
 
             socketAsync.Completed += completedAction;
+
+            return socketAsync;
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="SocketAsyncEventArgs"/> instance.
+        /// </summary>
+        /// <param name="userToken">User token</param>
+        /// <param name="completedAction">Completed operation action</param>
+        /// <param name="bufferSize">Buffer size</param>
+        /// <returns></returns>
+        public static SocketAsyncEventArgs CreateSocketAsync(object userToken, EventHandler<SocketAsyncEventArgs> completedAction, int bufferSize)
+        {
+            SocketAsyncEventArgs socketAsync = CreateSocketAsync(userToken, completedAction);
 
             if (bufferSize > 0)
                 socketAsync.SetBuffer(new byte[bufferSize], 0, bufferSize);

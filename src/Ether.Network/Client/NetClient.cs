@@ -53,8 +53,8 @@ namespace Ether.Network.Client
         {
             this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this._ipEndPoint = NetUtils.CreateIpEndPoint(host, port);
-            this._socketSendArgs = NetUtils.CreateSocketAsync(this.Socket, -1, this.IO_Completed);
-            this._socketReceiveArgs = NetUtils.CreateSocketAsync(this, bufferSize, this.IO_Completed);
+            this._socketSendArgs = NetUtils.CreateSocketAsync(this.Socket, this.IO_Completed);
+            this._socketReceiveArgs = NetUtils.CreateSocketAsync(this, this.IO_Completed, bufferSize);
             this._autoConnectEvent = new AutoResetEvent(false);
             this._autoSendEvent = new AutoResetEvent(false);
             this._sendingQueue = new BlockingCollection<byte[]>();
@@ -71,7 +71,7 @@ namespace Ether.Network.Client
             if (this.IsConnected)
                 throw new InvalidOperationException("Client is already connected to remote.");
 
-            var connectSocket = NetUtils.CreateSocketAsync(this.Socket, -1, this.IO_Completed);
+            var connectSocket = NetUtils.CreateSocketAsync(this.Socket, this.IO_Completed);
             connectSocket.RemoteEndPoint = this._ipEndPoint;
 
             if (this.Socket.ConnectAsync(connectSocket))
