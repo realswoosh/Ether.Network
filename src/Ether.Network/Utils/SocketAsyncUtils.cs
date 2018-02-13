@@ -8,105 +8,62 @@ namespace Ether.Network.Utils
 {
     internal static class SocketAsyncUtils
     {
-        public static void ProcessReceivedData(SocketAsyncEventArgs e, IAsyncUserToken token, IPacketProcessor packetProcessor, int alreadyProcessedDataSize)
+        internal static void ReceiveData(SocketAsyncEventArgs e, IAsyncUserToken token, IPacketProcessor packetProcessor)
         {
-            while (true)
+            if (e == null)
+                throw new ArgumentException(nameof(e));
+
+            var receivedBuffer = new byte[e.BytesTransferred];
+            Buffer.BlockCopy(e.Buffer, 0, receivedBuffer, 0, e.BytesTransferred);
+
+            while (token.DataStartOffset < receivedBuffer.Length)
             {
-                if (e == null)
-                    throw new ArgumentNullException(nameof(e));
-                
-                if (alreadyProcessedDataSize >= token.TotalReceivedDataSize)
-                    return;
-
-                int dataStartOffset = token.DataStartOffset;
-                int headerSize = packetProcessor.HeaderSize;
-
-                if (!token.MessageSize.HasValue)
+                if (token.ReceivedHeaderBytesCount < packetProcessor.HeaderSize)
                 {
-                    if (token.TotalReceivedDataSize > headerSize && token.HeaderData == null)
-                    {
-                        token.HeaderData = NetUtils.GetPacketBuffer(e.Buffer, dataStartOffset, headerSize);
-                        token.DataStartOffset = dataStartOffset + headerSize;
-                        token.ReceivedHeaderBytesCount = headerSize;
-                        alreadyProcessedDataSize += headerSize;
-                    }
-                    else if (token.ReceivedHeaderBytesCount < headerSize)
-                    {
-                        int rest = Math.Min(e.Buffer.Length - dataStartOffset, headerSize - token.ReceivedHeaderBytesCount);
-                        byte[] remainingBuffer = NetUtils.GetPacketBuffer(e.Buffer, dataStartOffset, rest);
+                    if (token.HeaderData == null)
+                        token.HeaderData = new byte[packetProcessor.HeaderSize];
 
-                        token.HeaderData = token.HeaderData?.Concat(remainingBuffer).ToArray() ?? remainingBuffer;
-
-                        token.ReceivedHeaderBytesCount += remainingBuffer.Length;
-                        token.DataStartOffset += remainingBuffer.Length;
-                        alreadyProcessedDataSize += rest;
-                    }
+                    int bufferRemainingBytes = receivedBuffer.Length - token.DataStartOffset;
+                    int headerRemainingBytes = packetProcessor.HeaderSize - token.ReceivedHeaderBytesCount;
+                    int bytesToRead = Math.Min(bufferRemainingBytes, headerRemainingBytes);
+                    Buffer.BlockCopy(receivedBuffer, token.DataStartOffset, token.HeaderData, token.ReceivedHeaderBytesCount, bytesToRead);
+                    token.ReceivedHeaderBytesCount += bytesToRead;
+                    token.DataStartOffset += bytesToRead;
                 }
 
-                if (token.ReceivedHeaderBytesCount == headerSize)
+                if (token.ReceivedHeaderBytesCount == packetProcessor.HeaderSize && token.HeaderData != null)
                 {
-                    int messageSize = packetProcessor.GetLength(token.HeaderData);
+                    if (!token.MessageSize.HasValue)
+                        token.MessageSize = packetProcessor.GetLength(token.HeaderData) - packetProcessor.HeaderSize;
+                    if (token.MessageSize.Value < 0)
+                        throw new InvalidOperationException("Message size cannot be smaller than zero.");
 
-                    token.MessageSize = messageSize - headerSize;
-                    token.ReceivedHeaderBytesCount = 0;
-                }
+                    if (token.MessageData == null)
+                        token.MessageData = new byte[token.MessageSize.Value];
 
-                if (token.MessageSize.HasValue)
-                {
-                    int messageSize = token.MessageSize.Value;
-                    dataStartOffset = token.DataStartOffset;
-
-                    if (token.TotalReceivedDataSize - alreadyProcessedDataSize >= messageSize && token.MessageData == null)
+                    if (token.ReceivedMessageBytesCount < token.MessageSize.Value)
                     {
-                        token.MessageData = NetUtils.GetPacketBuffer(e.Buffer, dataStartOffset, messageSize);
-                        token.DataStartOffset = dataStartOffset + messageSize;
-                        token.MessageSize = null;
-                        token.ReceivedMessageBytesCount = messageSize;
-                        alreadyProcessedDataSize += messageSize;
-                    }
-                    else if (token.ReceivedMessageBytesCount < messageSize)
-                    {
-                        int rest = Math.Min(e.Buffer.Length - dataStartOffset, messageSize - token.ReceivedMessageBytesCount);
-                        byte[] remainingBuffer = NetUtils.GetPacketBuffer(e.Buffer, dataStartOffset, rest);
-
-                        token.MessageData = token.MessageData?.Concat(remainingBuffer).ToArray() ?? remainingBuffer;
-
-                        token.ReceivedMessageBytesCount += remainingBuffer.Length;
-                        token.DataStartOffset += remainingBuffer.Length;
-                        alreadyProcessedDataSize += rest;
+                        int bufferRemainingBytes = receivedBuffer.Length - token.DataStartOffset;
+                        int messageRemainingBytes = token.MessageSize.Value - token.ReceivedMessageBytesCount;
+                        int bytesToRead = Math.Min(bufferRemainingBytes, messageRemainingBytes);
+                        Buffer.BlockCopy(receivedBuffer, token.DataStartOffset, token.MessageData, token.ReceivedMessageBytesCount, bytesToRead);
+                        token.ReceivedMessageBytesCount += bytesToRead;
+                        token.DataStartOffset += bytesToRead;
                     }
 
-                    if (token.ReceivedMessageBytesCount != messageSize || token.MessageData == null)
-                        continue;
+                    if (token.ReceivedMessageBytesCount == token.MessageSize.Value)
+                    {
+                        byte[] messageData = packetProcessor.IncludeHeader
+                            ? token.HeaderData.Concat(token.HeaderData).ToArray()
+                            : token.MessageData;
 
-                    token.MessageHandler?.Invoke(token.MessageData);
-                    token.ReceivedMessageBytesCount = 0;
-                    token.MessageData = null;
-                    token.MessageSize = null;
+                        token.Reset();
+                        token.MessageHandler?.Invoke(messageData);
+                    }
                 }
             }
-        }
 
-        public static void ProcessNextReceive(SocketAsyncEventArgs e, IAsyncUserToken token)
-        {
-            token.NextReceiveOffset += e.BytesTransferred;
-
-            if (token.NextReceiveOffset == e.Buffer.Length)
-            {
-                token.NextReceiveOffset = 0;
-
-                if (token.DataStartOffset < e.Buffer.Length)
-                {
-                    int notYesProcessDataSize = e.Buffer.Length - token.DataStartOffset;
-                    Buffer.BlockCopy(e.Buffer, token.DataStartOffset, e.Buffer, 0, notYesProcessDataSize);
-
-                    token.NextReceiveOffset = notYesProcessDataSize;
-                }
-
-                token.DataStartOffset = 0;
-            }
-
-            e.SetBuffer(token.NextReceiveOffset, e.Buffer.Length - token.NextReceiveOffset);
+            token.DataStartOffset = 0;
         }
     }
 }

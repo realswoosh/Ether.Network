@@ -25,12 +25,6 @@ namespace Ether.Network.Common.Data
         public int DataStartOffset { get; set; }
 
         /// <inheritdoc />
-        public int NextReceiveOffset { get; set; }
-
-        /// <inheritdoc />
-        public int TotalReceivedDataSize { get; set; }
-
-        /// <inheritdoc />
         public Socket Socket { get; set; }
 
         /// <inheritdoc />
@@ -56,9 +50,17 @@ namespace Ether.Network.Common.Data
             this.MessageSize = null;
             this.MessageData = null;
             this.DataStartOffset = 0;
-            this.NextReceiveOffset = 0;
-            this.TotalReceivedDataSize = 0;
             this.MessageHandler = messageHandlerAction;
+        }
+
+        /// <inheritdoc />
+        public void Reset()
+        {
+            this.ReceivedHeaderBytesCount = 0;
+            this.ReceivedMessageBytesCount = 0;
+            this.HeaderData = null;
+            this.MessageData = null;
+            this.MessageSize = null;
         }
     }
 }

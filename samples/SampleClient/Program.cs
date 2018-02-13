@@ -39,7 +39,7 @@ namespace SampleClient
                     }
 
                     i++;
-                    Thread.Sleep(500);
+                    Thread.Sleep(5);
                 }
             }
             catch (Exception e)
