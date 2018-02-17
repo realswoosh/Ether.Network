@@ -17,6 +17,11 @@ namespace Ether.Network.Client
         /// Gets the <see cref="INetClient"/> connected state.
         /// </summary>
         bool IsConnected { get; }
+        
+        /// <summary>
+        /// Gets the <see cref="INetClient"/> running state.
+        /// </summary>
+        bool IsRunning { get; }
 
         /// <summary>
         /// Connects to a remote server.

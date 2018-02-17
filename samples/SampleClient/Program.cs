@@ -5,9 +5,9 @@ using System.Threading;
 
 namespace SampleClient
 {
-    class Program
+    internal class Program
     {
-        static void Main(string[] args)
+        private static void Main()
         {
             var client = new MyClient("127.0.0.1", 4444, 512);
             client.Connect();
@@ -39,7 +39,7 @@ namespace SampleClient
                     }
 
                     i++;
-                    Thread.Sleep(5);
+                    Thread.Sleep(50);
                 }
             }
             catch (Exception e)

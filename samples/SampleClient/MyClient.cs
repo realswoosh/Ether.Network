@@ -13,9 +13,11 @@ namespace SampleClient
         /// <param name="host"></param>
         /// <param name="port"></param>
         /// <param name="bufferSize"></param>
-        public MyClient(string host, int port, int bufferSize) 
-            : base(host, port, bufferSize)
+        public MyClient(string host, int port, int bufferSize)
         {
+            this.Configuration.Host = host;
+            this.Configuration.Port = port;
+            this.Configuration.BufferSize = bufferSize;
         }
 
         /// <summary>
@@ -33,7 +35,7 @@ namespace SampleClient
         /// </summary>
         protected override void OnConnected()
         {
-            Console.WriteLine("Connected to {0}", this.Socket.RemoteEndPoint.ToString());
+            Console.WriteLine("Connected to {0}", this.Socket.RemoteEndPoint);
         }
 
         /// <summary>

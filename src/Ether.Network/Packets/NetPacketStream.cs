@@ -19,19 +19,13 @@ namespace Ether.Network.Packets
         private readonly BinaryReader _memoryReader;
         private readonly BinaryWriter _memoryWriter;
 
-        /// <summary>
-        /// Gets the <see cref="NetPacketStream"/> size.
-        /// </summary>
+        /// <inheritdoc />
         public int Size => (int)this.Length;
 
-        /// <summary>
-        /// Gets the <see cref="NetPacketStream"/> buffer.
-        /// </summary>
+        /// <inheritdoc />
         public virtual byte[] Buffer => this.GetInternalBuffer();
 
-        /// <summary>
-        /// Gets the current position of the cursor in the packet stream.
-        /// </summary>
+        /// <inheritdoc />
         public new long Position => base.Position;
 
         /// <summary>
@@ -54,11 +48,7 @@ namespace Ether.Network.Packets
             this._state = PacketStateType.Read;
         }
 
-        /// <summary>
-        /// Reads a T value from the packet.
-        /// </summary>
-        /// <typeparam name="T">Type of the value</typeparam>
-        /// <returns>The value read and converted to the type.</returns>
+        /// <inheritdoc />
         public virtual T Read<T>()
         {
             if (this._state != PacketStateType.Read)
@@ -72,12 +62,7 @@ namespace Ether.Network.Packets
             return default(T);
         }
 
-        /// <summary>
-        /// Reads an array of T value from the packet.
-        /// </summary>
-        /// <typeparam name="T">Value type.</typeparam>
-        /// <param name="amount">Amount to read.</param>
-        /// <returns></returns>
+        /// <inheritdoc />
         public virtual T[] Read<T>(int amount)
         {
             if (this._state != PacketStateType.Read)
@@ -97,11 +82,7 @@ namespace Ether.Network.Packets
             return array;
         }
 
-        /// <summary>
-        /// Writes a T value in the packet.
-        /// </summary>
-        /// <typeparam name="T">Value type.</typeparam>
-        /// <param name="value">Value.</param>
+        /// <inheritdoc />
         public void Write<T>(T value)
         {
             if (this._state != PacketStateType.Write)
