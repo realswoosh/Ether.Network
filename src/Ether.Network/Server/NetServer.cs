@@ -306,11 +306,10 @@ namespace Ether.Network.Server
             {
                 if (!(e.UserToken is NetUser connection))
                     return;
+                
+                SocketAsyncUtils.ReceiveData(e, connection.Token, this.PacketProcessor);
 
-                IAsyncUserToken token = connection.Token;
-                SocketAsyncUtils.ReceiveData(e, token, this.PacketProcessor);
-
-                if (!token.Socket.ReceiveAsync(e))
+                if (!connection.Socket.ReceiveAsync(e))
                     this.ProcessReceive(e);
             }
             else

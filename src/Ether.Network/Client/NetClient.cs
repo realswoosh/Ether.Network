@@ -18,10 +18,7 @@ namespace Ether.Network.Client
     public abstract class NetClient : NetUser, INetClient
     {
         private static readonly IPacketProcessor DefaultPacketProcessor = new NetPacketProcessor();
-
-        private readonly IPEndPoint _ipEndPoint;
-        private readonly SocketAsyncEventArgs _socketReceiveArgs;
-        private readonly SocketAsyncEventArgs _socketSendArgs;
+        
         private readonly AutoResetEvent _autoConnectEvent;
         private readonly AutoResetEvent _autoSendEvent;
         private readonly BlockingCollection<byte[]> _sendingQueue;
@@ -32,29 +29,31 @@ namespace Ether.Network.Client
         private readonly CancellationToken _cancelToken;
 
         private bool _isDisposed;
+        private SocketAsyncEventArgs _socketReceiveArgs;
+        private SocketAsyncEventArgs _socketSendArgs;
 
         /// <summary>
         /// Gets the packet processor.
         /// </summary>
         protected virtual IPacketProcessor PacketProcessor => DefaultPacketProcessor;
 
-        /// <summary>
-        /// Gets the <see cref="NetClient"/> connected state.
-        /// </summary>
+        /// <inheritdoc />
         public bool IsConnected => this.Socket != null && this.Socket.Connected;
+
+        /// <inheritdoc />
+        public bool IsRunning { get; private set; }
+
+        /// <summary>
+        /// Gets the <see cref="NetClient"/> configuration.
+        /// </summary>
+        protected NetClientConfiguration Configuration { get; }
 
         /// <summary>
         /// Creates a new <see cref="NetClient"/> instance.
         /// </summary>
-        /// <param name="host">Remote host or ip</param>
-        /// <param name="port">Remote port</param>
-        /// <param name="bufferSize">Buffer size</param>
-        protected NetClient(string host, int port, int bufferSize)
+        protected NetClient()
         {
-            this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            this._ipEndPoint = NetUtils.CreateIpEndPoint(host, port);
-            this._socketSendArgs = NetUtils.CreateSocketAsync(this.Socket, this.IO_Completed);
-            this._socketReceiveArgs = NetUtils.CreateSocketAsync(this, this.IO_Completed, bufferSize);
+            this.Configuration = new NetClientConfiguration(this);
             this._autoConnectEvent = new AutoResetEvent(false);
             this._autoSendEvent = new AutoResetEvent(false);
             this._sendingQueue = new BlockingCollection<byte[]>();
@@ -68,11 +67,18 @@ namespace Ether.Network.Client
         /// <inheritdoc />
         public void Connect()
         {
+            if (this.IsRunning)
+                throw new InvalidOperationException("Client is already running");
+
             if (this.IsConnected)
                 throw new InvalidOperationException("Client is already connected to remote.");
 
-            var connectSocket = NetUtils.CreateSocketAsync(this.Socket, this.IO_Completed);
-            connectSocket.RemoteEndPoint = this._ipEndPoint;
+            this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            this._socketSendArgs = NetUtils.CreateSocketAsync(this.Socket, this.IO_Completed);
+            this._socketReceiveArgs = NetUtils.CreateSocketAsync(this, this.IO_Completed, this.Configuration.BufferSize);
+
+            SocketAsyncEventArgs connectSocket = NetUtils.CreateSocketAsync(this.Socket, this.IO_Completed);
+            connectSocket.RemoteEndPoint = NetUtils.CreateIpEndPoint(this.Configuration.Host, this.Configuration.Port);
 
             if (this.Socket.ConnectAsync(connectSocket))
                 this._autoConnectEvent.WaitOne();
@@ -85,7 +91,8 @@ namespace Ether.Network.Client
             this._sendingQueueWorker.Start();
             this._receivingQueueWorker.Start();
             this.Token.Socket = this.Socket;
-            this.Token.MessageHandler = data => this._receivingQueue.Add(data);
+            this.Token.MessageHandler = data => this._receivingQueue.Add(data, this._cancelToken);
+            this.IsRunning = true;
 
             if (!this.Socket.ReceiveAsync(this._socketReceiveArgs))
                 this.ProcessReceive(this._socketReceiveArgs);
@@ -100,10 +107,17 @@ namespace Ether.Network.Client
                 this.Socket.Close();
 #else
                 this.Socket.Shutdown(SocketShutdown.Both);
-                this.Socket.Dispose();
 #endif
+                this.Socket.Dispose();
+                this.Socket = null;
             }
 
+            this._socketSendArgs?.Dispose();
+            this._socketSendArgs = null;
+            this._socketReceiveArgs?.Dispose();
+            this._socketReceiveArgs = null;
+
+            this.IsRunning = false;
             this._cancelTokenSource.Cancel(false);
             this.OnDisconnected();
         }
@@ -114,7 +128,7 @@ namespace Ether.Network.Client
             if (!this.IsConnected)
                 throw new SocketException();
 
-            this._sendingQueue.Add(packet.Buffer);
+            this._sendingQueue.Add(packet.Buffer, this._cancelToken);
         }
 
         /// <summary>
@@ -192,7 +206,7 @@ namespace Ether.Network.Client
                     {
                         using (INetPacketStream packet = this.PacketProcessor.CreatePacket(packetData))
                             this.HandleMessage(packet);
-                    });
+                    }, this._cancelToken);
                 }
                 catch (Exception e)
                 {
@@ -212,9 +226,8 @@ namespace Ether.Network.Client
             {
                 if (e.BytesTransferred <= 0 || !(e.UserToken is NetUser user))
                     return;
-
-                IAsyncUserToken token = user.Token;
-                SocketAsyncUtils.ReceiveData(e, token, this.PacketProcessor);
+                
+                SocketAsyncUtils.ReceiveData(e, user.Token, this.PacketProcessor);
 
                 if (!user.Socket.ReceiveAsync(e))
                     this.ProcessReceive(e);

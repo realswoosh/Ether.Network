@@ -19,14 +19,16 @@ namespace Ether.Network.Tests.Contexts.Echo
             {
                 this._sendedData.Sort(StringComparer.CurrentCulture);
                 return this._sendedData;
-            }    
+            }
         }
 
         public bool ConnectedToServer { get; private set; }
 
-        public MyEchoClient(string host, int port, int bufferSize) 
-            : base(host, port, bufferSize)
+        public MyEchoClient(string host, int port, int bufferSize)
         {
+            this.Configuration.Host = host;
+            this.Configuration.Port = port;
+            this.Configuration.BufferSize = bufferSize;
             this._sendedData = new List<string>();
             this._random = new Random();
         }

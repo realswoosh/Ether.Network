@@ -2,9 +2,9 @@
 
 namespace SampleServer
 {
-    class Program
+    internal class Program
     {
-        static void Main(string[] args)
+        private static void Main()
         {
             Console.Title = "Ether.Network Server";
 
