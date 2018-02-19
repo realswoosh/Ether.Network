@@ -87,9 +87,9 @@ namespace Ether.Network.Server
                 this._writePool.Push(NetUtils.CreateSocketAsync(null, this.IO_Completed, this.Configuration.BufferSize));
             }
 
-            this.Initialize();
             this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this.Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            this.Initialize();
             this.Socket.Bind(new IPEndPoint(address, this.Configuration.Port));
             this.Socket.Listen(this.Configuration.Backlog);
             this.IsRunning = true;
@@ -398,6 +398,13 @@ namespace Ether.Network.Server
                     this.ClearClients();
                     this._messageQueue.Clear();
                     this._messageQueue.Dispose();
+
+                    if (this.Socket != null)
+                    {
+                        this.Socket.Dispose();
+                        this.Socket = null;
+                    }
+
                     this._isDisposed = true;
                 }
             }
