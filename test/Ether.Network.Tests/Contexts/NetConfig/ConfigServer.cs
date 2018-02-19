@@ -29,7 +29,7 @@ namespace Ether.Network.Tests.Contexts.NetConfig
             this.Configuration.BufferSize = 512;
             this.Configuration.MaximumNumberOfConnections = 10;
             this.Configuration.Host = "127.0.0.1";
-            this.Configuration.Port = 4444;
+            this.Configuration.Port = 4445;
             this.Configuration.Backlog = 10;
             this.Configuration.Blocking = false;
         }
