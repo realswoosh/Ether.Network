@@ -15,8 +15,6 @@ namespace Ether.Network.Tests
                 Exception ex = Assert.Throws<EtherConfigurationException>(() => server.Start());
 
                 Assert.IsType<EtherConfigurationException>(ex);
-
-                server.Stop();
             }
         }
 
@@ -27,7 +25,6 @@ namespace Ether.Network.Tests
             {
                 server.SetupConfiguration();
                 server.Start();
-                server.Stop();
             }
         }
 
@@ -42,8 +39,6 @@ namespace Ether.Network.Tests
                 Exception ex = Assert.Throws<EtherConfigurationException>(() => server.SetupConfiguration());
 
                 Assert.IsType<EtherConfigurationException>(ex);
-
-                server.Stop();
             }
         }
 
