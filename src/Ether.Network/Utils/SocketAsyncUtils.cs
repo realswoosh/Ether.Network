@@ -54,7 +54,7 @@ namespace Ether.Network.Utils
                     if (token.ReceivedMessageBytesCount == token.MessageSize.Value)
                     {
                         byte[] messageData = packetProcessor.IncludeHeader
-                            ? token.HeaderData.Concat(token.HeaderData).ToArray()
+                            ? token.HeaderData.Concat(token.MessageData).ToArray()
                             : token.MessageData;
 
                         token.Reset();
