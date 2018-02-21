@@ -74,12 +74,7 @@ namespace Ether.Network.Server
             if (this.IsRunning)
                 throw new InvalidOperationException("Server is already running.");
 
-            if (this.Configuration.Port <= 0)
-                throw new EtherConfigurationException($"{this.Configuration.Port} is not a valid port.");
-
-            IPAddress address = this.Configuration.Host == AllInterfaces ? IPAddress.Any : this.Configuration.Address;
-            if (address == null)
-                throw new EtherConfigurationException($"Invalid host : {this.Configuration.Host}");
+            this.CheckConfiguration();
 
             for (var i = 0; i < this.Configuration.MaximumNumberOfConnections; i++)
             {
@@ -90,7 +85,7 @@ namespace Ether.Network.Server
             this.Initialize();
             this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this.Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
-            this.Socket.Bind(new IPEndPoint(address, this.Configuration.Port));
+            this.Socket.Bind(NetUtils.CreateIpEndPoint(this.Configuration.Host, this.Configuration.Port));
             this.Socket.Listen(this.Configuration.Backlog);
             this.IsRunning = true;
             this.StartAccept(NetUtils.CreateSocketAsync(null, this.IO_Completed));
@@ -356,6 +351,25 @@ namespace Ether.Network.Server
             this._readPool.Clear();
             this._writePool.Clear();
             this._messageQueue.Clear();
+        }
+
+        /// <summary>
+        /// Checks the configuration.
+        /// </summary>
+        private void CheckConfiguration()
+        {
+            if (this.Configuration.Port <= 0)
+                throw new EtherConfigurationException($"{this.Configuration.Port} is not a valid port.");
+
+            IPAddress address = this.Configuration.Host == AllInterfaces ? IPAddress.Any : this.Configuration.Address;
+            if (address == null)
+                throw new EtherConfigurationException($"Invalid host : {this.Configuration.Host}.");
+
+            if (this.Configuration.BufferSize <= 0)
+                throw new EtherConfigurationException("BufferSize cannot less or equal to 0.");
+
+            if (this.Configuration.Backlog <= 0)
+                throw new EtherConfigurationException("Backlog cannot be less or equal to 0.");
         }
 
         /// <summary>
