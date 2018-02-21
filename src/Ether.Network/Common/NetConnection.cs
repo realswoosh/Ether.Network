@@ -54,12 +54,16 @@ namespace Ether.Network.Common
             {
                 if (this.Socket != null)
                 {
+#if !NETSTANDARD1_3
+                    this.Socket.Close();
+#endif
                     this.Socket.Dispose();
                     this.Socket = null;
                 }
+
+                this._disposedValue = true;
             }
 
-            this._disposedValue = true;
         }
     }
 }

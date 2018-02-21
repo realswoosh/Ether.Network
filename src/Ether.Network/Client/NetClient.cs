@@ -9,6 +9,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Ether.Network.Exceptions;
 
 namespace Ether.Network.Client
 {
@@ -72,6 +73,8 @@ namespace Ether.Network.Client
 
             if (this.IsConnected)
                 throw new InvalidOperationException("Client is already connected to remote.");
+
+            this.CheckConfiguration();
 
             this.Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this._socketSendArgs = NetUtils.CreateSocketAsync(this.Socket, this.IO_Completed);
@@ -236,6 +239,21 @@ namespace Ether.Network.Client
             {
                 this.Disconnect();
             }
+        }
+
+        /// <summary>
+        /// Checks the configuration.
+        /// </summary>
+        private void CheckConfiguration()
+        {
+            if (this.Configuration.Port <= 0)
+                throw new EtherConfigurationException($"{this.Configuration.Port} is not a valid port.");
+            
+            if (this.Configuration.Address == null)
+                throw new EtherConfigurationException($"Invalid host : {this.Configuration.Host}.");
+
+            if (this.Configuration.BufferSize <= 0)
+                throw new EtherConfigurationException("BufferSize cannot less or equal to 0.");
         }
 
         /// <summary>
