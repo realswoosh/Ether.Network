@@ -335,8 +335,11 @@ namespace Ether.Network.Server
         /// <param name="messageData">Incoming message data</param>
         private void HandleIncomingMessages(T user, byte[] messageData)
         {
-            using (INetPacketStream packet = this.PacketProcessor.CreatePacket(messageData))
-                user.HandleMessage(packet);
+            Task.Run(() =>
+            {
+                using (INetPacketStream packet = this.PacketProcessor.CreatePacket(messageData))
+                    user.HandleMessage(packet);
+            });
         }
 
         /// <summary>

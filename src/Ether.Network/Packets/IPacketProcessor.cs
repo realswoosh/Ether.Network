@@ -16,17 +16,17 @@
         bool IncludeHeader { get; }
 
         /// <summary>
-        /// Gets the packet length.
+        /// Gets the packet message length.
         /// </summary>
-        /// <param name="buffer">Input buffer</param>
-        /// <returns>Packet data length</returns>
-        int GetLength(byte[] buffer);
+        /// <param name="buffer">Header buffer</param>
+        /// <returns>Packet message data length</returns>
+        int GetMessageLength(byte[] buffer);
 
         /// <summary>
-        /// Creates a T packet instance.
+        /// Creates a new <see cref="INetPacketStream"/> packet instance.
         /// </summary>
         /// <param name="buffer">Input buffer</param>
-        /// <returns></returns>
+        /// <returns>New packet</returns>
         INetPacketStream CreatePacket(byte[] buffer);
     }
 }
