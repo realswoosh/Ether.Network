@@ -53,7 +53,7 @@ namespace Ether.Network.Tests
             byte[] value = null;
 
             using (INetPacketStream packetStream = new NetPacketStream(StringTestArray))
-                value = packetStream.Read<byte>(StringTestArray.Length);
+                value = packetStream.ReadArray<byte>(StringTestArray.Length);
 
             string convertedValue = Encoding.ASCII.GetString(value);
 

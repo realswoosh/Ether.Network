@@ -35,7 +35,7 @@ namespace Ether.Network.Packets
         /// <typeparam name="T">Value type.</typeparam>
         /// <param name="amount">Amount to read.</param>
         /// <returns>An array of type T.</returns>
-        T[] Read<T>(int amount);
+        T[] ReadArray<T>(int amount);
 
         /// <summary>
         /// Writes a T value in the packet.

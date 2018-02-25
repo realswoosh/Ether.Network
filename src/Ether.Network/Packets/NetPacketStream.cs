@@ -63,7 +63,7 @@ namespace Ether.Network.Packets
         }
 
         /// <inheritdoc />
-        public virtual T[] Read<T>(int amount)
+        public virtual T[] ReadArray<T>(int amount)
         {
             if (this._state != PacketStateType.Read)
                 throw new InvalidOperationException("Packet is in write-only mode.");
@@ -83,7 +83,7 @@ namespace Ether.Network.Packets
         }
 
         /// <inheritdoc />
-        public void Write<T>(T value)
+        public virtual void Write<T>(T value)
         {
             if (this._state != PacketStateType.Write)
                 throw new InvalidOperationException("Packet is in read-only mode.");

@@ -7,13 +7,13 @@ namespace Ether.Network.Packets
     /// </summary>
     public sealed class NetPacket : NetPacketStream
     {
-        /// <summary>
-        /// Gets the packet buffer.
-        /// </summary>
+        private readonly int HeaderSize = sizeof(int);
+
+        /// <inheritdoc />
         public override byte[] Buffer => this.BuildBuffer();
 
         /// <summary>
-        /// Creates a new NetPacket in write-only mode.
+        /// Creates a new <see cref="NetPacket"/> in write-only mode.
         /// </summary>
         public NetPacket()
         {
@@ -21,7 +21,7 @@ namespace Ether.Network.Packets
         }
 
         /// <summary>
-        /// Creates a new NetPacket in read-only mode.
+        /// Creates a new <see cref="NetPacket"/> in read-only mode.
         /// </summary>
         /// <param name="buffer"></param>
         public NetPacket(byte[] buffer)
@@ -38,7 +38,7 @@ namespace Ether.Network.Packets
             long oldPosition = this.Position;
 
             this.Seek(0, SeekOrigin.Begin);
-            this.Write(this.Size);
+            this.Write(this.Size - HeaderSize);
             this.Seek((int)oldPosition, SeekOrigin.Begin);
 
             return base.Buffer;

@@ -34,7 +34,7 @@ namespace Ether.Network.Utils
                 if (token.ReceivedHeaderBytesCount == packetProcessor.HeaderSize && token.HeaderData != null)
                 {
                     if (!token.MessageSize.HasValue)
-                        token.MessageSize = packetProcessor.GetLength(token.HeaderData) - packetProcessor.HeaderSize;
+                        token.MessageSize = packetProcessor.GetMessageLength(token.HeaderData);
                     if (token.MessageSize.Value < 0)
                         throw new InvalidOperationException("Message size cannot be smaller than zero.");
 
