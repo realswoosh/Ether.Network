@@ -9,7 +9,7 @@
         /// Creates a new <see cref="EtherConfigurationException"/>.
         /// </summary>
         public EtherConfigurationException()
-            : base("")
+            : base(string.Empty)
         {
         }
 

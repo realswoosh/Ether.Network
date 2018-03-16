@@ -1,16 +1,16 @@
 ﻿using Ether.Network.Exceptions;
 using Ether.Network.Utils;
-using System.Linq;
 using System.Net;
 
-namespace Ether.Network
+namespace Ether.Network.Server
 {
     /// <summary>
-    /// Provide properties to configuration a <see cref="NetServer{T}"/>.
+    /// Provide properties to configure a <see cref="NetServer{T}"/>.
     /// </summary>
     public sealed class NetServerConfiguration
     {
         private readonly INetServer _server;
+        private bool _blocking;
         private int _port;
         private int _backlog;
         private int _bufferSize;
@@ -18,12 +18,21 @@ namespace Ether.Network
         private string _host;
 
         /// <summary>
+        /// Gets or sets the blocking state of the server.
+        /// </summary>
+        public bool Blocking
+        {
+            get => this._blocking;
+            set => this.SetValue(ref this._blocking, value);
+        }
+
+        /// <summary>
         /// Gets or sets the port.
         /// </summary>
         public int Port
         {
-            get { return this._port; }
-            set { this.SetValue(ref this._port, value); }
+            get => this._port;
+            set => this.SetValue(ref this._port, value);
         }
     
         /// <summary>
@@ -31,8 +40,8 @@ namespace Ether.Network
         /// </summary>
         public string Host
         {
-            get { return this._host; }
-            set { this.SetValue(ref this._host, value); }
+            get => this._host;
+            set => this.SetValue(ref this._host, value);
         }
 
         /// <summary>
@@ -40,8 +49,8 @@ namespace Ether.Network
         /// </summary>
         public int Backlog
         {
-            get { return this._backlog; }
-            set { this.SetValue(ref this._backlog, value); }
+            get => this._backlog;
+            set => this.SetValue(ref this._backlog, value);
         }
 
         /// <summary>
@@ -49,8 +58,8 @@ namespace Ether.Network
         /// </summary>
         public int MaximumNumberOfConnections
         {
-            get { return this._maximumNumberOfConnections; }
-            set { this.SetValue(ref this._maximumNumberOfConnections, value); }
+            get => this._maximumNumberOfConnections;
+            set => this.SetValue(ref this._maximumNumberOfConnections, value);
         }
 
         /// <summary>
@@ -58,8 +67,8 @@ namespace Ether.Network
         /// </summary>
         public int BufferSize
         {
-            get { return this._bufferSize; }
-            set { this.SetValue(ref this._bufferSize, value); }
+            get => this._bufferSize;
+            set => this.SetValue(ref this._bufferSize, value);
         }
 
         /// <summary>
@@ -70,18 +79,11 @@ namespace Ether.Network
         /// <summary>
         /// Creates a new <see cref="NetServerConfiguration"/>.
         /// </summary>
-        public NetServerConfiguration()
-            : this(null)
-        {
-        }
-
-        /// <summary>
-        /// Creates a new <see cref="NetServerConfiguration"/>.
-        /// </summary>
         /// <param name="server">Server reference</param>
         internal NetServerConfiguration(INetServer server)
         {
             this._server = server;
+            this.Blocking = true;
             this.Port = 0;
             this.Host = null;
             this.Backlog = 50;

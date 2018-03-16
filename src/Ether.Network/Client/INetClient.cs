@@ -1,12 +1,12 @@
-﻿using System;
-using Ether.Network.Packets;
+﻿using Ether.Network.Packets;
+using System;
 
-namespace Ether.Network
+namespace Ether.Network.Client
 {
     /// <summary>
     /// <see cref="INetClient"/> interface.
     /// </summary>
-    public interface INetClient
+    public interface INetClient : IDisposable
     {
         /// <summary>
         /// Gets the <see cref="INetClient"/> unique Id.
@@ -17,6 +17,11 @@ namespace Ether.Network
         /// Gets the <see cref="INetClient"/> connected state.
         /// </summary>
         bool IsConnected { get; }
+        
+        /// <summary>
+        /// Gets the <see cref="INetClient"/> running state.
+        /// </summary>
+        bool IsRunning { get; }
 
         /// <summary>
         /// Connects to a remote server.
@@ -32,6 +37,6 @@ namespace Ether.Network
         /// Sends packets to the remote server.
         /// </summary>
         /// <param name="packet"></param>
-        void Send(NetPacketBase packet);
+        void Send(INetPacketStream packet);
     }
 }

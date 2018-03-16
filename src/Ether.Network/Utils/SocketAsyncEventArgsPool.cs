@@ -9,6 +9,7 @@ namespace Ether.Network.Utils
     /// </summary>
     internal sealed class SocketAsyncEventArgsPool : IDisposable
     {
+        private bool _disposedValue;
         private readonly ConcurrentStack<SocketAsyncEventArgs> _socketPool;
 
         /// <summary>
@@ -20,14 +21,20 @@ namespace Ether.Network.Utils
         }
 
         /// <summary>
+        /// Destructs the <see cref="SocketAsyncEventArgsPool"/> instance.
+        /// </summary>
+        ~SocketAsyncEventArgsPool()
+        {
+            this.Dispose(false);
+        }
+
+        /// <summary>
         /// Pops a <see cref="SocketAsyncEventArgs"/> of the top of the stack.
         /// </summary>
         /// <returns></returns>
         public SocketAsyncEventArgs Pop()
         {
-            if (this._socketPool.TryPop(out SocketAsyncEventArgs socketAsyncEventArgs))
-                return socketAsyncEventArgs;
-            return null;
+            return this._socketPool.TryPop(out SocketAsyncEventArgs socketAsyncEventArgs) ? socketAsyncEventArgs : null;
         }
 
         /// <summary>
@@ -36,40 +43,49 @@ namespace Ether.Network.Utils
         /// <param name="socketAsyncEventArgs"></param>
         public void Push(SocketAsyncEventArgs socketAsyncEventArgs)
         {
+            if (socketAsyncEventArgs == null)
+                throw new ArgumentNullException(nameof(socketAsyncEventArgs));
+
+            Array.Clear(socketAsyncEventArgs.Buffer, 0, socketAsyncEventArgs.Buffer.Length);
+            socketAsyncEventArgs.SetBuffer(socketAsyncEventArgs.Buffer, 0, socketAsyncEventArgs.Buffer.Length);
             this._socketPool.Push(socketAsyncEventArgs);
         }
 
-        #region IDisposable Support
+        /// <summary>
+        /// Clear the pool.
+        /// </summary>
+        public void Clear()
+        {
+            foreach (SocketAsyncEventArgs e in this._socketPool)
+                e.Dispose();
 
-        private bool _disposedValue;
+            this._socketPool.Clear();
+        }
 
+        /// <summary>
+        /// Disposes resources.
+        /// </summary>
+        /// <param name="disposing"></param>
         private void Dispose(bool disposing)
         {
-            if (!_disposedValue)
-            {
-                if (disposing)
-                {
-                    foreach (SocketAsyncEventArgs e in this._socketPool)
-                        e.Dispose();
+            if (this._disposedValue)
+                return;
 
-                    this._socketPool.Clear();
-                }
-                
-                _disposedValue = true;
+            if (disposing)
+            {
+                this.Clear();
             }
+
+            this._disposedValue = true;
         }
         
-        ~SocketAsyncEventArgsPool()
-        {
-            this.Dispose(false);
-        }
-        
+        /// <summary>
+        /// Dispose the <see cref="SocketAsyncEventArgsPool"/> resources.
+        /// </summary>
         public void Dispose()
         {
             this.Dispose(true);
             GC.SuppressFinalize(this);
         }
-
-        #endregion
     }
 }
