@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-## [3.0.0] - Unknow release date
+## [3.0.0] - 16/03/2018
 
 ** Breaking Changes **
 
@@ -16,6 +16,7 @@
 - Add support for reading byte arrays with `INetPacketStream`. (PR [#48](https://github.com/Eastrall/Ether.Network/pull/48))
 - Add broadcast system for `NetServer`. (PR [#52](https://github.com/Eastrall/Ether.Network/pull/52))
 - Add `NetClientConfiguration` (PR [#78](https://github.com/Eastrall/Ether.Network/pull/78))
+- Add `GetUser(Guid)` to `INetServer` (PR [#85](https://github.com/Eastrall/Ether.Network/pull/85))
 
 ### Changed
 
