@@ -11,7 +11,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "global", "global", "{DF04DF
 		.gitignore = .gitignore
 		.travis.yml = .travis.yml
 		CHANGELOG.md = CHANGELOG.md
-		icon.png = icon.png
 		LICENSE = LICENSE
 		README.md = README.md
 	EndProjectSection
@@ -26,7 +25,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleServer", "samples\Sam
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleClient", "samples\SampleClient\SampleClient.csproj", "{97591391-9447-4FE9-8497-3C499195D9EC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ether.Network.Tests", "test\Ether.Network.Tests\Ether.Network.Tests.csproj", "{C476BA36-F230-493B-9C97-F00ADA482892}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Ether.Network.Tests", "test\Ether.Network.Tests\Ether.Network.Tests.csproj", "{C476BA36-F230-493B-9C97-F00ADA482892}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
