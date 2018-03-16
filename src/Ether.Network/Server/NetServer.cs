@@ -142,6 +142,9 @@ namespace Ether.Network.Server
         /// <inheritdoc />
         public void SendToAll(INetPacketStream packet) => this.SendTo(this.Clients, packet);
 
+        /// <inheritdoc />
+        public INetUser GetUser(Guid id) => this._clients.ContainsKey(id) ? this._clients[id] : null;
+
         /// <summary>
         /// Initialize the server resourrces.
         /// </summary>
