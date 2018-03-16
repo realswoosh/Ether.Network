@@ -1,4 +1,4 @@
-# ![logo](https://raw.githubusercontent.com/Eastrall/Ether.Network/develop/banner.png)
+# ![logo](https://raw.githubusercontent.com/Eastrall/Ether.Network/master/resources/banner.png)
 
 [![forthebadge](http://forthebadge.com/images/badges/made-with-c-sharp.svg)](http://forthebadge.com)
 [![forthebadge](http://forthebadge.com/images/badges/built-with-love.svg)](http://forthebadge.com)
