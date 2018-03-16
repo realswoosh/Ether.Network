@@ -43,5 +43,12 @@ namespace Ether.Network.Server
         /// </summary>
         /// <param name="packet">Packet to send.</param>
         void SendToAll(INetPacketStream packet);
+
+        /// <summary>
+        /// Gets the user by his Id.
+        /// </summary>
+        /// <param name="id">User Id</param>
+        /// <returns>User</returns>
+        INetUser GetUser(Guid id);
     }
 }
