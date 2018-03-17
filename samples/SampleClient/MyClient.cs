@@ -13,11 +13,12 @@ namespace SampleClient
         /// <param name="host"></param>
         /// <param name="port"></param>
         /// <param name="bufferSize"></param>
-        public MyClient(string host, int port, int bufferSize)
+        public MyClient(string host, int port, int bufferSize, int timeOut)
         {
             this.Configuration.Host = host;
             this.Configuration.Port = port;
             this.Configuration.BufferSize = bufferSize;
+            this.Configuration.TimeOut = timeOut;
         }
 
         /// <summary>

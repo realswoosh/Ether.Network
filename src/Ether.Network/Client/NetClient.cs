@@ -84,12 +84,15 @@ namespace Ether.Network.Client
             connectSocket.RemoteEndPoint = NetUtils.CreateIpEndPoint(this.Configuration.Host, this.Configuration.Port);
 
             if (this.Socket.ConnectAsync(connectSocket))
-                this._autoConnectEvent.WaitOne();
+                this._autoConnectEvent.WaitOne(Configuration.TimeOut);
 
             SocketError errorCode = connectSocket.SocketError;
 
-            if (errorCode != SocketError.Success)
-                throw new SocketException((int) errorCode);
+            if (!IsConnected)
+            {
+                this.OnSocketError(errorCode);
+                return;
+            }
 
             this._sendingQueueWorker.Start();
             this._receivingQueueWorker.Start();

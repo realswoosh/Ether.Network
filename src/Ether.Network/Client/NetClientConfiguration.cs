@@ -13,6 +13,7 @@ namespace Ether.Network.Client
         private int _port;
         private int _bufferSize;
         private string _host;
+        private int _timeOut;
 
         /// <summary>
         /// Gets or sets the port.
@@ -42,6 +43,15 @@ namespace Ether.Network.Client
         }
 
         /// <summary>
+        /// Gets or sets the connecting time out.
+        /// </summary>
+        public int TimeOut
+        {
+            get => this._timeOut;
+            set => this.SetValue(ref this._timeOut, value);
+        }
+
+        /// <summary>
         /// Gets the listening address.
         /// </summary>
         internal IPAddress Address => NetUtils.GetIpAddress(this._host);
@@ -56,6 +66,7 @@ namespace Ether.Network.Client
             this._bufferSize = 1024;
             this._port = 0;
             this._host = null;
+            this._timeOut = 5000;
         }
 
         /// <summary>

@@ -9,8 +9,15 @@ namespace SampleClient
     {
         private static void Main()
         {
-            var client = new MyClient("127.0.0.1", 4444, 512);
+            var client = new MyClient("127.0.0.1", 4444, 512, 5000);
             client.Connect();
+
+            if (!client.IsConnected)
+            {
+                Console.WriteLine("Can't connect to server!");
+                Console.ReadLine();
+                return;
+            }
 
             Console.WriteLine("Enter a message and press enter...");
             int i = 0;
