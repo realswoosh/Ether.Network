@@ -5,6 +5,27 @@ using Ether.Network.Utils;
 namespace Ether.Network.Client
 {
     /// <summary>
+    /// Options defining how a client will handle a failed connection attempt
+    /// </summary>
+    public enum ClientRetryOptions
+    {
+        /// <summary>
+        /// The client will only try to connect one time
+        /// </summary>
+        OneTime = 0,
+
+        /// <summary>
+        /// The client will try to connect up to the amount of times specified by <see cref="MaxRetryAttempts"/>
+        /// </summary>
+        ToLimit = 1,
+
+        /// <summary>
+        /// The client will try infinitely to connect to the server
+        /// </summary>
+        Infinite = 2
+    }
+
+    /// <summary>
     /// Provides properties to configure a <see cref="NetClient"/>.
     /// </summary>
     public sealed class NetClientConfiguration
@@ -14,6 +35,8 @@ namespace Ether.Network.Client
         private int _bufferSize;
         private string _host;
         private int _timeOut;
+        private ClientRetryOptions _retryMode;
+        private int _maxRetryAttempts;
 
         /// <summary>
         /// Gets or sets the port.
@@ -49,6 +72,25 @@ namespace Ether.Network.Client
         {
             get => this._timeOut;
             set => this.SetValue(ref this._timeOut, value);
+        }
+
+        /// <summary>
+        /// Gets or sets how the client handles failed connections.
+        /// When using <see cref="ClientRetryOptions.ToLimit"/> set <see cref="MaxRetryAttempts"/>
+        /// </summary>
+        public ClientRetryOptions RetryMode
+        {
+            get => this._retryMode;
+            set => this.SetValue(ref this._retryMode, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the maximum number of times the client will try to reconnect to the server
+        /// </summary>
+        public int MaxRetryAttempts
+        {
+            get => this._maxRetryAttempts;
+            set => this.SetValue(ref this._maxRetryAttempts, value);
         }
 
         /// <summary>
