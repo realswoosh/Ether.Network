@@ -88,10 +88,42 @@ namespace Ether.Network.Client
 
             SocketError errorCode = connectSocket.SocketError;
 
+            //Did the connection attempt fail?
             if (!IsConnected)
             {
-                this.OnSocketError(errorCode);
-                return;
+                //Should we reconnect more than once?
+                if (this.Configuration.RetryMode == ClientRetryOptions.ToLimit)
+                {
+                    int count = 0;
+
+                    //Loop until the retry count
+                    while (!IsConnected && count < this.Configuration.MaxRetryAttempts)
+                    {
+                        if (this.Socket.ConnectAsync(connectSocket))
+                            this._autoConnectEvent.WaitOne(Configuration.TimeOut);
+
+                        errorCode = connectSocket.SocketError;
+                        count++;
+                    }
+                }
+                else if (this.Configuration.RetryMode == ClientRetryOptions.Infinite)
+                {
+                    //Loop infinitely while we haven't made a connection
+                    while (!IsConnected)
+                    {
+                        if (this.Socket.ConnectAsync(connectSocket))
+                            this._autoConnectEvent.WaitOne(Configuration.TimeOut);
+
+                        errorCode = connectSocket.SocketError;
+                    }
+                }
+
+                //Are we still not connected after possible retry attempts?
+                if (!IsConnected)
+                {
+                    this.OnSocketError(errorCode);
+                    return;
+                }
             }
 
             this._sendingQueueWorker.Start();
