@@ -87,16 +87,13 @@ namespace Ether.Network.Client
                 this._autoConnectEvent.WaitOne(Configuration.TimeOut);
 
             SocketError errorCode = connectSocket.SocketError;
-
-            //Did the connection attempt fail?
+            
             if (!IsConnected)
             {
-                //Should we reconnect more than once?
                 if (this.Configuration.RetryMode == ClientRetryOptions.ToLimit)
                 {
                     int count = 0;
-
-                    //Loop until the retry count
+                    
                     while (!IsConnected && count < this.Configuration.MaxRetryAttempts)
                     {
                         if (this.Socket.ConnectAsync(connectSocket))
@@ -108,7 +105,6 @@ namespace Ether.Network.Client
                 }
                 else if (this.Configuration.RetryMode == ClientRetryOptions.Infinite)
                 {
-                    //Loop infinitely while we haven't made a connection
                     while (!IsConnected)
                     {
                         if (this.Socket.ConnectAsync(connectSocket))
@@ -117,8 +113,7 @@ namespace Ether.Network.Client
                         errorCode = connectSocket.SocketError;
                     }
                 }
-
-                //Are we still not connected after possible retry attempts?
+                
                 if (!IsConnected)
                 {
                     this.OnSocketError(errorCode);
