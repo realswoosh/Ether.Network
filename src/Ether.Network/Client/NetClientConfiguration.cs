@@ -109,6 +109,7 @@ namespace Ether.Network.Client
             this._port = 0;
             this._host = null;
             this._timeOut = 5000;
+            this.RetryMode = ClientRetryOptions.OneTime;
         }
 
         /// <summary>
