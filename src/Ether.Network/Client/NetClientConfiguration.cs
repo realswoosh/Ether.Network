@@ -15,9 +15,9 @@ namespace Ether.Network.Client
         OneTime = 0,
 
         /// <summary>
-        /// The client will try to connect up to the amount of times specified by <see cref="MaxRetryAttempts"/>
+        /// The client will try to connect a specific amount of times
         /// </summary>
-        ToLimit = 1,
+        Limited = 1,
 
         /// <summary>
         /// The client will try infinitely to connect to the server
@@ -76,7 +76,7 @@ namespace Ether.Network.Client
 
         /// <summary>
         /// Gets or sets how the client handles failed connections.
-        /// When using <see cref="ClientRetryOptions.ToLimit"/> set <see cref="MaxRetryAttempts"/>
+        /// When using <see cref="ClientRetryOptions.Limited"/> set <see cref="MaxRetryAttempts"/>
         /// </summary>
         public ClientRetryOptions RetryMode
         {

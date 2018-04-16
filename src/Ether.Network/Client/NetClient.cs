@@ -87,7 +87,7 @@ namespace Ether.Network.Client
             
             if (!IsConnected)
             {
-                if (this.Configuration.RetryMode == ClientRetryOptions.ToLimit)
+                if (this.Configuration.RetryMode == ClientRetryOptions.Limited)
                 {
                     int count = 0;
                     
