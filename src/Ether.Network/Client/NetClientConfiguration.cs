@@ -5,27 +5,6 @@ using Ether.Network.Utils;
 namespace Ether.Network.Client
 {
     /// <summary>
-    /// Options defining how a client will handle a failed connection attempt
-    /// </summary>
-    public enum ClientRetryOptions
-    {
-        /// <summary>
-        /// The client will only try to connect one time
-        /// </summary>
-        OneTime = 0,
-
-        /// <summary>
-        /// The client will try to connect a specific amount of times
-        /// </summary>
-        Limited = 1,
-
-        /// <summary>
-        /// The client will try infinitely to connect to the server
-        /// </summary>
-        Infinite = 2
-    }
-
-    /// <summary>
     /// Provides properties to configure a <see cref="NetClient"/>.
     /// </summary>
     public sealed class NetClientConfiguration
@@ -35,7 +14,7 @@ namespace Ether.Network.Client
         private int _bufferSize;
         private string _host;
         private int _timeOut;
-        private ClientRetryOptions _retryMode;
+        private NetClientRetryOptions _retryMode;
         private int _maxRetryAttempts;
 
         /// <summary>
@@ -76,9 +55,9 @@ namespace Ether.Network.Client
 
         /// <summary>
         /// Gets or sets how the client handles failed connections.
-        /// When using <see cref="ClientRetryOptions.Limited"/> set <see cref="MaxRetryAttempts"/>
+        /// When using <see cref="NetClientRetryOptions.Limited"/> set <see cref="MaxRetryAttempts"/>
         /// </summary>
-        public ClientRetryOptions RetryMode
+        public NetClientRetryOptions RetryMode
         {
             get => this._retryMode;
             set => this.SetValue(ref this._retryMode, value);
@@ -109,7 +88,7 @@ namespace Ether.Network.Client
             this._port = 0;
             this._host = null;
             this._timeOut = 5000;
-            this.RetryMode = ClientRetryOptions.OneTime;
+            this.RetryMode = NetClientRetryOptions.OneTime;
         }
 
         /// <summary>
