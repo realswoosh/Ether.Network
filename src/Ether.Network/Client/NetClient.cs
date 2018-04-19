@@ -83,15 +83,33 @@ namespace Ether.Network.Client
             SocketAsyncEventArgs connectSocket = NetUtils.CreateSocketAsync(this.Socket, this.IO_Completed);
             connectSocket.RemoteEndPoint = NetUtils.CreateIpEndPoint(this.Configuration.Host, this.Configuration.Port);
 
-            if (this.Socket.ConnectAsync(connectSocket))
-                this._autoConnectEvent.WaitOne(Configuration.TimeOut);
-
-            SocketError errorCode = connectSocket.SocketError;
-
+            SocketError errorCode = ConnectSocketToServer(connectSocket);
+            
             if (!IsConnected)
             {
-                this.OnSocketError(errorCode);
-                return;
+                if (this.Configuration.RetryMode == NetClientRetryOptions.Limited)
+                {
+                    int count = 0;
+                    
+                    while (!IsConnected && count < this.Configuration.MaxRetryAttempts)
+                    {
+                        errorCode = ConnectSocketToServer(connectSocket);
+                        count++;
+                    }
+                }
+                else if (this.Configuration.RetryMode == NetClientRetryOptions.Infinite)
+                {
+                    while (!IsConnected)
+                    {
+                        errorCode = ConnectSocketToServer(connectSocket);
+                    }
+                }
+                
+                if (!IsConnected)
+                {
+                    this.OnSocketError(errorCode);
+                    return;
+                }
             }
 
             this._sendingQueueWorker.Start();
@@ -312,6 +330,19 @@ namespace Ether.Network.Client
             this._isDisposed = true;
 
             base.Dispose(disposing);
+        }
+
+        /// <summary>
+        /// Connects a socket to a server
+        /// </summary>
+        /// <param name="connectSocket">The socket to connect</param>
+        /// <returns>The socket error</returns>
+        private SocketError ConnectSocketToServer(SocketAsyncEventArgs connectSocket)
+        {
+            if (this.Socket.ConnectAsync(connectSocket))
+                this._autoConnectEvent.WaitOne(Configuration.TimeOut);
+
+            return connectSocket.SocketError;
         }
     }
 }

@@ -14,6 +14,8 @@ namespace Ether.Network.Client
         private int _bufferSize;
         private string _host;
         private int _timeOut;
+        private NetClientRetryOptions _retryMode;
+        private int _maxRetryAttempts;
 
         /// <summary>
         /// Gets or sets the port.
@@ -52,6 +54,25 @@ namespace Ether.Network.Client
         }
 
         /// <summary>
+        /// Gets or sets how the client handles failed connections.
+        /// When using <see cref="NetClientRetryOptions.Limited"/> set <see cref="MaxRetryAttempts"/>
+        /// </summary>
+        public NetClientRetryOptions RetryMode
+        {
+            get => this._retryMode;
+            set => this.SetValue(ref this._retryMode, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the maximum number of times the client will try to reconnect to the server
+        /// </summary>
+        public int MaxRetryAttempts
+        {
+            get => this._maxRetryAttempts;
+            set => this.SetValue(ref this._maxRetryAttempts, value);
+        }
+
+        /// <summary>
         /// Gets the listening address.
         /// </summary>
         internal IPAddress Address => NetUtils.GetIpAddress(this._host);
@@ -67,6 +88,7 @@ namespace Ether.Network.Client
             this._port = 0;
             this._host = null;
             this._timeOut = 5000;
+            this.RetryMode = NetClientRetryOptions.OneTime;
         }
 
         /// <summary>
