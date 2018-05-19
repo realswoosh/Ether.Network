@@ -220,15 +220,10 @@ namespace Ether.Network.Client
 
                     if (buffer == null)
                         continue;
-
-                    byte[] packetData = this.PacketProcessor.IncludeHeader
-                        ? this.Token.HeaderData.Concat(buffer).ToArray()
-                        : buffer;
-                    this.Token.HeaderData = null;
-
+                    
                     Task.Run(() =>
                     {
-                        using (INetPacketStream packet = this.PacketProcessor.CreatePacket(packetData))
+                        using (INetPacketStream packet = this.PacketProcessor.CreatePacket(buffer))
                             this.HandleMessage(packet);
                     }, this._cancelToken);
                 }
