@@ -120,9 +120,6 @@ namespace Ether.Network.Server
         /// <inheritdoc />
         public void DisconnectClient(Guid clientId)
         {
-            if (!this._clients.ContainsKey(clientId))
-                return;
-
             if (!this._clients.TryRemove(clientId, out T removedClient))
                 return;
 
@@ -143,7 +140,7 @@ namespace Ether.Network.Server
         public void SendToAll(INetPacketStream packet) => this.SendTo(this.Clients, packet);
 
         /// <inheritdoc />
-        public INetUser GetUser(Guid id) => this._clients.ContainsKey(id) ? this._clients[id] : null;
+        public INetUser GetUser(Guid id) => this._clients.TryGetValue(id, out T user) ? user : null;
 
         /// <summary>
         /// Initialize the server resourrces.
@@ -262,8 +259,9 @@ namespace Ether.Network.Server
                     if (message.User != null && message.Message != null)
                         this.SendMessage(message);
                 }
-                catch
+                catch (Exception e)
                 {
+                    this.OnError(e);
                     if (this._sendQueueCancelToken.IsCancellationRequested)
                         break;
                 }
