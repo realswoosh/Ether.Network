@@ -61,7 +61,7 @@ namespace SampleClient
             Console.ReadLine();
         }
 
-        private const string CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        private const string CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789가나다라마바사아자차카타파하";
 
         /// <summary>
         /// Generates a random string.

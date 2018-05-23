@@ -7,25 +7,29 @@ namespace Ether.Network.Packets
 {
     internal static class NetPacketMethods
     {
-        /// <summary>
-        /// Read methods dictionary.
-        /// </summary>
-        internal static readonly Dictionary<Type, Func<BinaryReader, object>> ReadMethods = new Dictionary<Type, Func<BinaryReader, object>>
-        {
-            { typeof(char), reader => reader.ReadChar() },
-            { typeof(byte), reader => reader.ReadByte() },
-            { typeof(sbyte), reader => reader.ReadSByte() },
-            { typeof(bool), reader => reader.ReadBoolean()},
-            { typeof(ushort), reader => reader.ReadUInt16()},
-            { typeof(short), reader => reader.ReadInt16()},
-            { typeof(uint), reader => reader.ReadUInt32()},
-            { typeof(int), reader => reader.ReadInt32()},
-            { typeof(ulong), reader => reader.ReadUInt64()},
-            { typeof(long), reader => reader.ReadInt64()},
-            { typeof(float), reader => reader.ReadSingle() },
-            { typeof(double), reader => reader.ReadDouble() },
-            { typeof(byte[]), reader => reader.ReadBytes(count: reader.ReadInt32()) },
-            { typeof(string), reader => new string(reader.ReadChars(count: reader.ReadInt32())) },
+		/// <summary>
+		/// Read methods dictionary.
+		/// </summary>
+		internal static readonly Dictionary<Type, Func<BinaryReader, object>> ReadMethods = new Dictionary<Type, Func<BinaryReader, object>>
+		{
+			{ typeof(char), reader => reader.ReadChar() },
+			{ typeof(byte), reader => reader.ReadByte() },
+			{ typeof(sbyte), reader => reader.ReadSByte() },
+			{ typeof(bool), reader => reader.ReadBoolean()},
+			{ typeof(ushort), reader => reader.ReadUInt16()},
+			{ typeof(short), reader => reader.ReadInt16()},
+			{ typeof(uint), reader => reader.ReadUInt32()},
+			{ typeof(int), reader => reader.ReadInt32()},
+			{ typeof(ulong), reader => reader.ReadUInt64()},
+			{ typeof(long), reader => reader.ReadInt64()},
+			{ typeof(float), reader => reader.ReadSingle() },
+			{ typeof(double), reader => reader.ReadDouble() },
+			{ typeof(byte[]), reader => reader.ReadBytes(count: reader.ReadInt32()) },
+			{ typeof(string), reader => {
+				byte[] tmp = reader.ReadBytes(count: reader.ReadInt32());
+				return Encoding.UTF8.GetString(tmp);
+				}
+			},
         };
 
         /// <summary>
@@ -55,10 +59,14 @@ namespace Ether.Network.Packets
             { typeof(string),
                 (writer, value) =>
                 {
-                    writer.Write(value.ToString().Length);
-                    if (value.ToString().Length > 0)
-                        writer.Write(Encoding.ASCII.GetBytes(value.ToString()));
-                }
+					byte[] enc = Encoding.UTF8.GetBytes(value.ToString());
+
+					if (enc.Length > 0)
+					{
+						writer.Write(enc.Length);
+						writer.Write(enc);
+					}
+				}
             }
         };
     }
