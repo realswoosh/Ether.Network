@@ -13,13 +13,13 @@ namespace Ether.Network.Tests
         private static readonly short ShortValue = 30546;
         private static readonly int Int32Value = 452674652;
         private static readonly long Int64Value = 3465479740298342;
-        private static readonly string StringValue = Helper.GenerateRandomString(543);
-
+        private static readonly string StringValue = Helper.GenerateRandomStringAllCharacter(543);
+		
         private static readonly byte[] ByteTestArray = new byte[] { ByteValue };
         private static readonly byte[] ShortTestArray = BitConverter.GetBytes(ShortValue);
         private static readonly byte[] Int32TestArray = BitConverter.GetBytes(Int32Value);
         private static readonly byte[] Int64TestArray = BitConverter.GetBytes(Int64Value);
-        private static readonly byte[] StringTestArray = Encoding.ASCII.GetBytes(StringValue);
+        private static readonly byte[] StringTestArray = Encoding.UTF8.GetBytes(StringValue);
 
         private static readonly byte[] ByteArrayValue = BitConverter.GetBytes(0xDEADBEEF);
 
@@ -55,10 +55,11 @@ namespace Ether.Network.Tests
             using (INetPacketStream packetStream = new NetPacketStream(StringTestArray))
                 value = packetStream.ReadArray<byte>(StringTestArray.Length);
 
-            string convertedValue = Encoding.ASCII.GetString(value);
+            string convertedValue = Encoding.UTF8.GetString(value);
 
-            Assert.Equal(StringValue, convertedValue);
+			Assert.Equal(StringValue, convertedValue);
         }
+
 
         [Fact]
         public void ReadByteArray()
@@ -127,7 +128,7 @@ namespace Ether.Network.Tests
 
             Assert.Equal(StringValue, readString);
         }
-
+		
         [Fact]
         public void WriteByteArray()
         {
